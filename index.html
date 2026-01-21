@@ -78,15 +78,10 @@ button:disabled{opacity:.55; cursor:not-allowed}
 .bad .dot{background:var(--bad)}
 .neutral .dot{background:#a78bfa}
 
-.log{
-  font-family:var(--mono);font-size:12px;
-  background:rgba(0,0,0,.3);
-  border:1px solid var(--line);
-  border-radius:12px;padding:10px;
-  max-height:220px;overflow:auto;white-space:pre-wrap
+.tableWrap{
+  overflow:auto;border:1px solid var(--line);
+  border-radius:12px;background:rgba(0,0,0,.18)
 }
-
-.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.18)}
 table{width:100%;border-collapse:collapse;min-width:850px;font-size:13px}
 th,td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
 th{color:var(--muted);text-align:left}
@@ -95,15 +90,6 @@ tr:hover td{background:rgba(255,255,255,.04)}
 .muted{color:var(--muted)}
 .small{font-size:12px}
 
-.kpi{display:flex; gap:10px; flex-wrap:wrap}
-.kpi .pill{
-  border:1px solid var(--line);
-  border-radius:999px;
-  padding:6px 10px;
-  background:rgba(0,0,0,.25);
-  font-size:12px;
-  color:var(--muted);
-}
 .chartWrap{
   border:1px solid var(--line);
   border-radius:12px;
@@ -117,9 +103,10 @@ canvas{ touch-action:none; }
 .squatTable thead th{
   position:sticky; top:0; background:rgba(0,0,0,.35);
   backdrop-filter: blur(8px);
-  font-size: 14px; font-weight: 900;
+  font-size: 15px; font-weight: 900;
 }
-.squatTable tbody th{ font-weight: 900; color: var(--text); }
+.squatTable tbody th{ font-weight: 900; color: var(--text); font-size: 16px; }
+.squatTable tbody td{ font-size: 16px; font-weight: 800; } /* chiffres plus gros */
 .squatHL td,.squatHL th{ background: rgba(255,255,255,.06); }
 </style>
 
@@ -131,23 +118,23 @@ canvas{ touch-action:none; }
 <header>
   <h1>IWLS – Restrictions / Marée / Squat</h1>
   <p class="subtitle">
-    • Squat (haut) utilise les <b>mêmes entrées</b> que les restrictions (type navire / largeur / tirant)<br>
-    • Marée 12h (milieu) : tooltip + crosshair + drag tactile, avec <b>vitesse possible</b> (Prof.) calculée via Squat<br>
-    • Restrictions (bas) : interdictions <span class="mono">de HH:MM (jj/mm) à HH:MM (jj/mm)</span>
+    • Squat (haut) utilise les mêmes entrées (type navire / largeur / tirant)<br>
+    • Marée 12h (milieu) : tooltip + crosshair + drag tactile, avec vitesse possible (Prof.) via Squat<br>
+    • Restrictions (bas)
   </p>
 </header>
 
 <main class="wrap">
 
-<!-- GAUCHE : Entrées uniques + Journal -->
+<!-- GAUCHE : Entrées -->
 <section class="card">
   <div class="hd">
-    Entrées (communes)
+    Entrées
     <span class="badge neutral"><span class="dot"></span><span id="status">Prêt</span></span>
   </div>
   <div class="bd grid">
     <div class="field">
-      <label>Date (restrictions)</label>
+      <label>Date</label>
       <input type="date" id="date">
     </div>
 
@@ -162,7 +149,7 @@ canvas{ touch-action:none; }
     <div class="row2">
       <div class="field">
         <label>Largeur / Beam (m)</label>
-        <input id="largeur" value="32.0" inputmode="decimal">
+        <input id="largeur" value="32.25" inputmode="decimal">
       </div>
       <div class="field">
         <label>Tirant d’eau / Draft (m)</label>
@@ -174,11 +161,6 @@ canvas{ touch-action:none; }
       <button id="run">Calculer restrictions</button>
       <button class="secondary" id="clear">Effacer</button>
     </div>
-
-    <div>
-      <label class="muted">Journal</label>
-      <div id="log" class="log"></div>
-    </div>
   </div>
 </section>
 
@@ -188,15 +170,12 @@ canvas{ touch-action:none; }
   <!-- SQUAT EN HAUT -->
   <section class="card">
     <div class="hd">
-      Calcul squat (référence)
+      Calcul Squat
       <span class="muted small" id="squatMeta">—</span>
     </div>
     <div class="bd grid">
       <div class="tableWrap">
         <table id="resultTable" class="squatTable" aria-label="Niveau d'eau requis"></table>
-      </div>
-      <div class="muted small">
-        Colonnes = Prof. (10.6 / 10.7 / 11.0 / 11.3). Lignes = vitesse.
       </div>
     </div>
   </section>
@@ -219,19 +198,12 @@ canvas{ touch-action:none; }
         </div>
       </div>
 
-      <div class="kpi">
-        <div class="pill">Fenêtre: <span class="mono" id="tideWindow">—</span></div>
-        <div class="pill">Min: <span class="mono" id="tideMin">—</span></div>
-        <div class="pill">Max: <span class="mono" id="tideMax">—</span></div>
-        <div class="pill">Points: <span class="mono" id="tideCount">—</span></div>
-      </div>
-
       <div class="chartWrap">
-        <canvas id="tideChart" height="130"></canvas>
+        <canvas id="tideChart" height="140"></canvas>
       </div>
 
       <div class="muted small">
-        Astuce: glisse sur le graphique → tooltip + ligne verticale restent actifs.
+        Glisse sur le graphique → tooltip + ligne verticale restent actifs.
       </div>
     </div>
   </section>
@@ -281,7 +253,7 @@ const STATIONS = {
 };
 
 const PROF_10_7 = new Set(["Neuville","Portneuf"]);
-const PROF_10_6 = new Set(["Deschaillons"]); // ← mise à jour demandée
+const PROF_10_6 = new Set(["Deschaillons"]); // mise à jour
 const PROF_11_0 = new Set(["Batiscan"]);
 const DEFAULT_PROF = 11.3;
 
@@ -311,7 +283,6 @@ const CONTENEUR = [
   [74,0.83,0.90,0.98,1.07,1.25,1.45,1.68,1.93,2.23],
   [76,0.79,0.88,0.96,1.04,1.22,1.41,1.63,1.88,2.17],
 ];
-
 const AUTRES = [
   [56,0.99,1.10,1.23,1.39,1.65,1.93,2.24,2.57,2.98],
   [58,0.97,1.08,1.21,1.36,1.61,1.88,2.18,2.51,2.91],
@@ -326,14 +297,12 @@ const AUTRES = [
   [76,0.80,0.90,0.97,1.06,1.24,1.44,1.66,1.92,2.21],
 ];
 
-/* Profondeurs disponibles pour le squat (on ajoute 10.6) */
 const PROFS = [10.6, 10.7, 11.0, 11.3];
 const SPEEDS = [7,8,9,10,11,12,13,14,15];
 const HIGHLIGHT = new Set([8,10,12,14]);
 
 /* ================= UI helpers ================= */
 const el = id => document.getElementById(id);
-const log = s => el("log").textContent += s + "\n";
 
 function setStatus(kind, text){
   const badge = el("status").closest(".badge");
@@ -346,16 +315,20 @@ function badgeHtml(kind, txt){
   return `<span class="badge ${kind}"><span class="dot"></span>${txt}</span>`;
 }
 
-function shortDT(z){
-  const p = new Intl.DateTimeFormat("fr-CA",{
-    timeZone:"America/Toronto",
-    hour:"2-digit",minute:"2-digit",
-    day:"2-digit",month:"2-digit",hour12:false
-  }).formatToParts(new Date(z));
+function formatDM(dt){
+  const p = new Intl.DateTimeFormat("fr-CA",{timeZone:"America/Toronto",day:"2-digit",month:"2-digit"}).formatToParts(dt);
   const g = t => (p.find(x=>x.type===t)||{}).value;
-  return `${g("hour")}:${g("minute")} (${g("day")}/${g("month")})`;
+  return `${g("day")}/${g("month")}`;
 }
-
+function formatHM(dt){
+  const p = new Intl.DateTimeFormat("fr-CA",{timeZone:"America/Toronto",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(dt);
+  const g = t => (p.find(x=>x.type===t)||{}).value;
+  return `${g("hour")}:${g("minute")}`;
+}
+function shortDT(z){
+  const d = new Date(z);
+  return `${formatHM(d)} (${formatDM(d)})`;
+}
 function isoDate(d){
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth()+1).padStart(2,"0");
@@ -379,7 +352,15 @@ async function fetchIWLS(stationId, fromIsoZ, toIsoZ){
   return await r.json();
 }
 
-/* ================= SQUAT compute (shared inputs) ================= */
+/* ================= Shared inputs ================= */
+function getInputsShared(){
+  const vessel = el("vessel").value; // "Conteneur" / "Autre"
+  const beam = Number(String(el("largeur").value).replace(",","."));
+  const draft = Number(String(el("tirant").value).replace(",","."));
+  return { vessel, beam, draft };
+}
+
+/* ================= SQUAT compute ================= */
 function vlookupApprox(x, table) {
   let idx = 0;
   for (let i = 0; i < table.length; i++) {
@@ -389,21 +370,8 @@ function vlookupApprox(x, table) {
   return table[idx];
 }
 
-function getInputsShared(){
-  const vessel = el("vessel").value; // "Conteneur" / "Autre"
-  const beam = Number(String(el("largeur").value).replace(",","."));
-  const draft = Number(String(el("tirant").value).replace(",","."));
-  return { vessel, beam, draft };
-}
-
 let squatCache = null;
-/*
-squatCache = {
-  shipKey: "CONTENEUR"|"AUTRES",
-  beam, draft,
-  required: { [speed]: { [prof]: number } }
-}
-*/
+
 function computeSquatRequired(shipKey, beam, draft){
   const lookupX = 100 - beam;
   const table = shipKey === "CONTENEUR" ? CONTENEUR : AUTRES;
@@ -413,7 +381,6 @@ function computeSquatRequired(shipKey, beam, draft){
   SPEEDS.forEach((s, i) => {
     required[s] = {};
     PROFS.forEach(p => {
-      // même formule que ton code: row[i+1] - (prof - draft)
       required[s][p] = row[i + 1] - (p - draft);
     });
   });
@@ -426,11 +393,10 @@ function updateSquat(){
 
   const shipKey = (vessel === "Conteneur") ? "CONTENEUR" : "AUTRES";
   const required = computeSquatRequired(shipKey, beam, draft);
-
   squatCache = { shipKey, beam, draft, required };
-  el("squatMeta").textContent = `${shipKey} • Beam ${beam.toFixed(1)} m • Draft ${draft.toFixed(1)} m`;
 
-  // render
+  el("squatMeta").textContent = `${shipKey} • Beam ${beam.toFixed(2)} m • Draft ${draft.toFixed(2)} m`;
+
   const tableEl = el("resultTable");
   let thead = "<thead><tr><th>Vitesse</th>";
   PROFS.forEach(p => thead += `<th>${p.toFixed(1)} m</th>`);
@@ -440,16 +406,14 @@ function updateSquat(){
   SPEEDS.forEach(s => {
     const trClass = HIGHLIGHT.has(s) ? ' class="squatHL"' : "";
     tbody += `<tr${trClass}><th>${s}</th>`;
-    PROFS.forEach(p => {
-      tbody += `<td>${required[s][p].toFixed(2)}</td>`;
-    });
+    PROFS.forEach(p => tbody += `<td>${required[s][p].toFixed(2)}</td>`);
     tbody += "</tr>";
   });
   tbody += "</tbody>";
+
   tableEl.innerHTML = thead + tbody;
 }
 
-/* ================= Speed possible from squat (for tide tooltip) ================= */
 function closestProfCol(prof){
   let best = PROFS[0], bestDist = Math.abs(prof-PROFS[0]);
   for(const p of PROFS){
@@ -461,7 +425,6 @@ function closestProfCol(prof){
 
 function speedPossibleForStationWaterLevel(stationName, waterLevel){
   if(!squatCache?.required || !Number.isFinite(waterLevel)) return null;
-
   const prof = stationProf(stationName);
   const col = closestProfCol(prof);
 
@@ -475,38 +438,25 @@ function speedPossibleForStationWaterLevel(stationName, waterLevel){
 
 /* ================= RESTRICTIONS ================= */
 async function runRestrictions(){
-  el("log").textContent="";
   setStatus("warn","Calcul…");
   el("results").innerHTML = "";
 
   const d = new Date(el("date").value+"T00:00");
   const today = new Date(); today.setHours(0,0,0,0);
-  if(d < today){ log("Date invalide (passé)."); setStatus("bad","Erreur"); return; }
+  if(d < today){ setStatus("bad","Erreur"); return; }
 
   const { vessel, beam:largeurIn, draft:tirant } = getInputsShared();
   if(!Number.isFinite(largeurIn) || !Number.isFinite(tirant)){
-    log("Largeur ou tirant invalide.");
     setStatus("bad","Erreur");
     return;
   }
 
   const largeurRounded = roundLargeur(largeurIn);
   const dsqR = (vessel==="Conteneur" ? TABLE_CONT_DsqR : TABLE_AUT_DsqR)[largeurRounded];
-  if(dsqR == null){
-    log(`Largeur arrondie ${largeurRounded} absente de la table DsqR.`);
-    setStatus("bad","Erreur table");
-    return;
-  }
+  if(dsqR == null){ setStatus("bad","Erreur table"); return; }
 
   const day1 = isoDate(d);
   const day2 = isoDate(new Date(d.getTime()+86400000));
-
-  log(`Date: ${day1}`);
-  log(`Navire: ${vessel}`);
-  log(`Largeur: ${largeurIn} → ${largeurRounded}`);
-  log(`Tirant: ${tirant}`);
-  log(`DsqR (table[${largeurRounded}][7]): ${dsqR}`);
-  log("------------------------------------------------------------");
 
   let anyBad=false, anyWarn=false;
 
@@ -525,7 +475,7 @@ async function runRestrictions(){
           <td class="mono">${lim.toFixed(3)}</td>
           <td class="muted">—</td>
           <td>${badgeHtml("bad","Erreur API")}</td>
-          <td class="muted">${e.message}</td>
+          <td class="muted">—</td>
           <td class="muted">—</td>
         </tr>`;
       continue;
@@ -553,7 +503,6 @@ async function runRestrictions(){
     const vmin = Math.min(...vals);
     const vmax = Math.max(...vals);
 
-    // fenêtres d'interdiction "de → à"
     let windows = [];
     let start = null;
     for(let i=1;i<c.length;i++){
@@ -567,7 +516,6 @@ async function runRestrictions(){
 
     let stat = badgeHtml("ok","OK");
     let interd = "—";
-
     if(windows.length){
       anyWarn=true;
       stat = badgeHtml("warn","Restriction");
@@ -596,21 +544,16 @@ async function runRestrictions(){
   else setStatus("ok","Terminé");
 }
 
-/* ================= MARÉE 12H (crosshair + drag persistant + vitesse possible) ================= */
+/* ================= MARÉE 12H (X axis: date once + hours; 5 gridlines) ================= */
 
 const TIDE_HOURS = 12;
 let tideChart = null;
+let tideTicks = null; // array of timestamps for 5 ticks
+let tideFirstTickDateLabel = ""; // "jj/mm"
 
 function setTideStatus(text){ el("tideStatus").textContent = text; }
 
-function formatWindowToronto(fromUtc, toUtc){
-  const fmt = new Intl.DateTimeFormat("fr-CA",{
-    timeZone:"America/Toronto",
-    hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit",hour12:false
-  });
-  return `${fmt.format(new Date(fromUtc))} → ${fmt.format(new Date(toUtc))}`;
-}
-
+// crosshair
 const crosshairPlugin = {
   id: "crosshairPlugin",
   afterDatasetsDraw(chart){
@@ -632,6 +575,17 @@ const crosshairPlugin = {
     ctx.lineTo(pt.x, bottom);
     ctx.stroke();
     ctx.restore();
+  }
+};
+
+// Force exactly 5 vertical grid lines via custom ticks
+const fixedXTicksPlugin = {
+  id: "fixedXTicksPlugin",
+  afterBuildTicks(chart, args, opts){
+    const scale = args.scale;
+    if(scale.id !== "x") return;
+    if(!Array.isArray(tideTicks) || tideTicks.length !== 5) return;
+    scale.ticks = tideTicks.map(v => ({ value: v }));
   }
 };
 
@@ -686,6 +640,29 @@ function bindPersistentHover(canvas, chart){
   }, {passive:false});
 }
 
+function floorToHourToronto(dateObj){
+  // convert to Toronto wall time parts, then rebuild a Date in UTC that matches that wall time
+  // (suffisant pour ticks; on réutilise l'ISO Z ensuite)
+  const parts = new Intl.DateTimeFormat("fr-CA",{
+    timeZone:"America/Toronto", year:"numeric", month:"2-digit", day:"2-digit",
+    hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false
+  }).formatToParts(dateObj);
+  const g = t => (parts.find(x=>x.type===t)||{}).value;
+
+  // floor minutes/seconds to 00:00 in Toronto wall time
+  const y = +g("year"), m = +g("month"), d = +g("day"), h = +g("hour");
+  // Build as if it's UTC; formatting will still be done in Toronto for labels
+  return new Date(Date.UTC(y, m-1, d, h, 0, 0));
+}
+
+function make5HourTicks(startDate, hours=12){
+  // 5 ticks => start + 0%, 25%, 50%, 75%, 100% of window
+  // => every 3 hours for a 12h window
+  const start = floorToHourToronto(startDate);
+  const step = (hours / 4) * 60*60*1000; // 3h in ms
+  return [0,1,2,3,4].map(i => start.getTime() + i*step);
+}
+
 async function plotTide12h(){
   const stationName = el("tideStation").value;
   const stationId = STATIONS[stationName];
@@ -700,7 +677,9 @@ async function plotTide12h(){
     const to  = new Date(now.getTime() + TIDE_HOURS*60*60*1000);
     const {from, to:toIso} = toApiRange(now, to);
 
-    el("tideWindow").textContent = formatWindowToronto(from, toIso);
+    // ticks + date label once
+    tideTicks = make5HourTicks(now, TIDE_HOURS);
+    tideFirstTickDateLabel = formatDM(new Date(tideTicks[0])); // jj/mm
 
     const data = await fetchIWLS(stationId, from, toIso);
 
@@ -711,19 +690,12 @@ async function plotTide12h(){
 
     if(!pts.length){
       setTideStatus("Aucune donnée");
-      el("tideMin").textContent = "—";
-      el("tideMax").textContent = "—";
-      el("tideCount").textContent = "0";
       if(tideChart){ tideChart.destroy(); tideChart=null; }
       return;
     }
 
-    const labels = pts.map(p => shortDT(p.t));
-    const values = pts.map(p => p.v);
-
-    el("tideMin").textContent = Math.min(...values).toFixed(3) + " m";
-    el("tideMax").textContent = Math.max(...values).toFixed(3) + " m";
-    el("tideCount").textContent = String(values.length);
+    // Use {x: timestamp(ms), y:value}
+    const series = pts.map(p => ({ x: new Date(p.t).getTime(), y: p.v }));
 
     const canvas = el("tideChart");
     const ctx = canvas.getContext("2d");
@@ -731,12 +703,12 @@ async function plotTide12h(){
 
     tideChart = new Chart(ctx, {
       type: "line",
-      plugins: [crosshairPlugin],
+      plugins: [crosshairPlugin, fixedXTicksPlugin],
       data: {
-        labels,
         datasets: [{
           label: `Niveau d'eau (m) – ${stationName} (12h)`,
-          data: values,
+          data: series,
+          parsing: false,
           tension: 0.25,
           pointRadius: 0,
           borderWidth: 2
@@ -746,6 +718,7 @@ async function plotTide12h(){
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode:"index", intersect:false, axis:"x" },
+
         plugins: {
           legend: { labels: { color: "#e7ecff" } },
           tooltip: {
@@ -753,8 +726,14 @@ async function plotTide12h(){
             mode: "index",
             intersect: false,
             callbacks: {
-              title: (items) => items?.[0]?.label ? `Heure: ${items[0].label}` : "",
-              label: (ctx) => Number.isFinite(ctx.parsed?.y) ? `Marée: ${ctx.parsed.y.toFixed(3)} m` : "",
+              title: (items) => {
+                const x = items?.[0]?.parsed?.x;
+                if(!Number.isFinite(x)) return "";
+                const dt = new Date(x);
+                return `Heure: ${formatHM(dt)} (${formatDM(dt)})`;
+              },
+              label: (ctx) =>
+                Number.isFinite(ctx.parsed?.y) ? `Marée: ${ctx.parsed.y.toFixed(3)} m` : "",
               afterBody: (items) => {
                 const y = items?.[0]?.parsed?.y;
                 const info = speedPossibleForStationWaterLevel(stationName, y);
@@ -764,21 +743,48 @@ async function plotTide12h(){
             }
           }
         },
+
         elements: { point: { radius:0, hoverRadius:4, hitRadius:12 } },
+
         scales: {
-          x: { ticks:{ color:"#8ea0c6", maxRotation:0, autoSkip:true }, grid:{ color:"rgba(255,255,255,.06)" } },
-          y: { ticks:{ color:"#8ea0c6", callback:(v)=>Number(v).toFixed(2) }, grid:{ color:"rgba(255,255,255,.06)" } }
+          x: {
+            type: "linear",
+            grid: { color:"rgba(255,255,255,.06)" },
+            ticks: {
+              color:"#8ea0c6",
+              callback: (value, index) => {
+                // value is ms timestamp because we set custom ticks with {value: ms}
+                const dt = new Date(Number(value));
+                const h = formatHM(dt);
+
+                // show date once only on first tick (left)
+                if(index === 0) return `${tideFirstTickDateLabel}  ${h}`;
+                return h;
+              }
+            }
+          },
+          y: {
+            grid: { color:"rgba(255,255,255,.06)" },
+            ticks: {
+              color:"#8ea0c6",
+              callback:(v)=>Number(v).toFixed(2)
+            }
+          }
         }
       }
     });
 
     bindPersistentHover(canvas, tideChart);
-    tideChart.setActiveElements([{datasetIndex:0, index: values.length-1}]);
+
+    // active par défaut sur le dernier point
+    tideChart.setActiveElements([{datasetIndex:0, index: series.length-1}]);
     tideChart.update("none");
+
     setTideStatus("OK");
   }catch(e){
     setTideStatus("Erreur");
-    log(`[Marée] ${e.message || e}`);
+    setStatus("warn","Prêt"); // ne pas bloquer l'UI
+    console.error(e);
   }finally{
     btn.disabled = false;
   }
@@ -803,13 +809,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   el("tirant").addEventListener("input", onSharedInputsChanged);
 
   el("clear").onclick = ()=>{
-    el("log").textContent="";
     el("results").innerHTML=`<tr><td colspan="6" class="muted">Aucun calcul</td></tr>`;
     el("tideStatus").textContent="—";
-    el("tideWindow").textContent="—";
-    el("tideMin").textContent="—";
-    el("tideMax").textContent="—";
-    el("tideCount").textContent="—";
     if(tideChart){ tideChart.destroy(); tideChart=null; }
     setStatus("neutral","Prêt");
     onSharedInputsChanged();
@@ -817,8 +818,34 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   onSharedInputsChanged();
   setStatus("neutral","Prêt");
-  log("Prêt. Deschaillons utilise maintenant Prof. 10.6.");
 });
+
+/* ================= Render squat table ================= */
+function updateSquat(){
+  const { vessel, beam, draft } = getInputsShared();
+  if(!Number.isFinite(beam) || !Number.isFinite(draft)) return;
+
+  const shipKey = (vessel === "Conteneur") ? "CONTENEUR" : "AUTRES";
+  const required = computeSquatRequired(shipKey, beam, draft);
+  squatCache = { shipKey, beam, draft, required };
+
+  el("squatMeta").textContent = `${shipKey} • Beam ${beam.toFixed(2)} m • Draft ${draft.toFixed(2)} m`;
+
+  const tableEl = el("resultTable");
+  let thead = "<thead><tr><th>Vitesse</th>";
+  PROFS.forEach(p => thead += `<th>${p.toFixed(1)} m</th>`);
+  thead += "</tr></thead>";
+
+  let tbody = "<tbody>";
+  SPEEDS.forEach(s => {
+    const trClass = HIGHLIGHT.has(s) ? ' class="squatHL"' : "";
+    tbody += `<tr${trClass}><th>${s}</th>`;
+    PROFS.forEach(p => tbody += `<td>${required[s][p].toFixed(2)}</td>`);
+    tbody += "</tr>";
+  });
+  tbody += "</tbody>";
+  tableEl.innerHTML = thead + tbody;
+}
 </script>
 
 </body>
