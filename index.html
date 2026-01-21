@@ -13,9 +13,8 @@
   --radius:16px;
   --mono: ui-monospace, Menlo, Consolas, monospace;
 
-  /* séparateurs verticaux pour table squat */
   --sep: rgba(255,255,255,.10);
-  --stickBg: rgba(0,0,0,.35);
+  --stickBg: rgba(0,0,0,.45);
 }
 
 body{
@@ -107,71 +106,15 @@ tr:hover td{background:rgba(255,255,255,.04)}
 }
 canvas{ touch-action:none; }
 
-/* =================== SQUAT TABLE (modifiée) =================== */
-.squatTable{
-  border-collapse: separate;   /* nécessaire pour sticky + séparateurs propres */
-  border-spacing: 0;
-  min-width: 520px;            /* moins large */
-}
-.squatTable th,.squatTable td{
-  text-align:center;
+/* ✅ plus gros graphique (lisibilité) */
+#tideChart{ height: 240px !important; }
 
-  /* ✅ moins d'espace entre colonnes */
-  padding: 6px 8px;
+/* ✅ réserver ~1cm en haut pour la box (mobile) */
+.chartWrap{
+  padding-top: 48px; /* ~1cm */
 }
 
-/* Header sticky */
-.squatTable thead th{
-  position:sticky;
-  top:0;
-  background:rgba(0,0,0,.35);
-  backdrop-filter: blur(8px);
-  font-size: 15px; font-weight: 900;
-  z-index: 3;
-}
-
-/* ✅ Colonne Vitesse sticky (header + body) */
-.squatTable thead th:first-child{
-  left:0;
-  z-index: 5; /* au-dessus des autres headers */
-  background: var(--stickBg);
-}
-.squatTable tbody th{
-  position: sticky;
-  left: 0;
-  z-index: 4;
-  background: rgba(0,0,0,.28);
-  font-weight: 900;
-  color: var(--text);
-  font-size: 16px;
-}
-
-/* Valeurs plus grosses */
-.squatTable tbody td{
-  font-size: 16px;
-  font-weight: 800;
-}
-
-/* lignes horizontales */
-.squatTable th, .squatTable td{
-  border-bottom: 1px solid rgba(255,255,255,.10);
-}
-
-/* ✅ séparateurs verticaux */
-.squatTable thead th + th{
-  border-left: 1px solid var(--sep);
-}
-.squatTable tbody th + td{
-  border-left: 1px solid var(--sep);
-}
-.squatTable tbody td + td{
-  border-left: 1px solid var(--sep);
-}
-
-/* highlight rows */
-.squatHL td,.squatHL th{ background: rgba(255,255,255,.06); }
-
-/* ===== Tooltip "pinné" ===== */
+/* Tooltip pinné */
 .pinnedBox{
   position:absolute;
   top:10px; right:10px;
@@ -185,11 +128,19 @@ canvas{ touch-action:none; }
   box-shadow: 0 8px 30px rgba(0,0,0,.35);
   display:none;
 }
-.pinnedTitle{
-  font-weight: 900;
-  margin-bottom: 6px;
-  font-size: 13px;
+
+/* ✅ sur mobile, box un peu plus compacte */
+@media(max-width:520px){
+  .pinnedBox{
+    min-width: 200px;
+    max-width: 240px;
+    padding: 8px 10px;
+    top: 8px;
+    right: 8px;
+  }
 }
+
+.pinnedTitle{font-weight: 900;margin-bottom: 6px;font-size: 13px;}
 .pinnedLine{
   font-size: 12.5px;
   line-height: 1.35;
@@ -210,10 +161,62 @@ canvas{ touch-action:none; }
   margin-top: 3px;
 }
 .pinnedMuted{ color: var(--muted); }
-.pinnedWarn{
-  color: #ffd08a;
-  font-weight: 900;
+.pinnedWarn{ color: #ffd08a; font-weight: 900; }
+
+/* =================== SQUAT TABLE (sticky + séparateurs) =================== */
+.squatTable{
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 520px;
 }
+.squatTable th,.squatTable td{
+  text-align:center;
+  padding: 6px 8px; /* moins d'espace */
+  border-bottom: 1px solid rgba(255,255,255,.10);
+  background-clip: padding-box;
+}
+.squatTable thead th{
+  position:sticky;
+  top:0;
+  background:rgba(0,0,0,.35);
+  backdrop-filter: blur(8px);
+  font-size: 15px;
+  font-weight: 900;
+  z-index: 3;
+}
+
+/* ✅ Colonne Vitesse sticky + masque (pour que les autres colonnes passent "dessous") */
+.squatTable thead th:first-child{
+  position: sticky;
+  left:0;
+  z-index: 30;
+  background: var(--stickBg);
+  box-shadow: 10px 0 0 rgba(0,0,0,.00); /* juste pour stabilité */
+}
+.squatTable tbody th{
+  position: sticky;
+  left: 0;
+  z-index: 25;                  /* au-dessus des td */
+  background: var(--stickBg);   /* opaque => cache ce qui passe dessous */
+  font-weight: 900;
+  color: var(--text);
+  font-size: 16px;
+  /* ✅ petite ombre pour séparation visuelle */
+  box-shadow: 10px 0 12px rgba(0,0,0,.25);
+}
+
+/* Valeurs */
+.squatTable tbody td{
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* séparateurs verticaux */
+.squatTable thead th + th{ border-left: 1px solid var(--sep); }
+.squatTable tbody th + td{ border-left: 1px solid var(--sep); }
+.squatTable tbody td + td{ border-left: 1px solid var(--sep); }
+
+.squatHL td,.squatHL th{ background: rgba(255,255,255,.06); }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -299,7 +302,7 @@ canvas{ touch-action:none; }
       </div>
 
       <div class="chartWrap" id="chartWrap">
-        <canvas id="tideChart" height="170"></canvas>
+        <canvas id="tideChart"></canvas>
 
         <div class="pinnedBox" id="pinnedBox" aria-live="polite">
           <div class="pinnedTitle" id="pinnedTitle">Heure: —</div>
@@ -423,9 +426,6 @@ function setStatus(kind, text){
   badge.classList.add(kind);
   el("status").textContent = text;
 }
-function badgeHtml(kind, txt){
-  return `<span class="badge ${kind}"><span class="dot"></span>${txt}</span>`;
-}
 
 function formatDM(dt){
   const p = new Intl.DateTimeFormat("fr-CA",{timeZone:"America/Toronto",day:"2-digit",month:"2-digit"}).formatToParts(dt);
@@ -436,16 +436,6 @@ function formatHM(dt){
   const p = new Intl.DateTimeFormat("fr-CA",{timeZone:"America/Toronto",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(dt);
   const g = t => (p.find(x=>x.type===t)||{}).value;
   return `${g("hour")}:${g("minute")}`;
-}
-function shortDT(z){
-  const d = new Date(z);
-  return `${formatHM(d)} (${formatDM(d)})`;
-}
-function isoDate(d){
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth()+1).padStart(2,"0");
-  const dd = String(d.getDate()).padStart(2,"0");
-  return `${yyyy}-${mm}-${dd}`;
 }
 function isoUtc(d){ return d.toISOString().replace(".000Z","Z"); }
 function toApiRange(fromDateUtc, toDateUtc){ return { from: isoUtc(fromDateUtc), to: isoUtc(toDateUtc) }; }
@@ -465,10 +455,7 @@ async function fetchIWLS(stationId, fromIsoZ, toIsoZ){
     `?time-series-code=wlf-spine&from=${encodeURIComponent(fromIsoZ)}`+
     `&to=${encodeURIComponent(toIsoZ)}`;
   const r = await fetch(url);
-  if(!r.ok){
-    const t = await r.text().catch(()=> "");
-    throw new Error(`HTTP ${r.status} ${r.statusText}${t ? " – "+t.slice(0,120) : ""}`);
-  }
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
   return await r.json();
 }
 
@@ -547,114 +534,6 @@ function speedPossibleForStationWaterLevel(stationName, waterLevel){
   return { speed: best, prof: col };
 }
 
-/* ================= RESTRICTIONS ================= */
-async function runRestrictions(){
-  setStatus("warn","Calcul…");
-  el("results").innerHTML = "";
-
-  const d = new Date(el("date").value+"T00:00");
-  const today = new Date(); today.setHours(0,0,0,0);
-  if(d < today){ setStatus("bad","Erreur"); return; }
-
-  const { vessel, beam:largeurIn, draft:tirant } = getInputsShared();
-  if(!Number.isFinite(largeurIn) || !Number.isFinite(tirant)){
-    setStatus("bad","Erreur");
-    return;
-  }
-
-  const largeurRounded = roundLargeur(largeurIn);
-  const dsqR = (vessel==="Conteneur" ? TABLE_CONT_DsqR : TABLE_AUT_DsqR)[largeurRounded];
-  if(dsqR == null){ setStatus("bad","Erreur table"); return; }
-
-  const day1 = isoDate(d);
-  const day2 = isoDate(new Date(d.getTime()+86400000));
-
-  let anyBad=false, anyWarn=false;
-
-  for(const [name,id] of Object.entries(STATIONS)){
-    const prof = stationProf(name);
-    const lim = tirant + dsqR - prof;
-
-    let data;
-    try{
-      data = await fetchIWLS(id, `${day1}T00:00:00Z`, `${day2}T23:57:00Z`);
-    }catch(e){
-      anyBad = true;
-      el("results").innerHTML += `
-        <tr>
-          <td><b>${name}</b></td>
-          <td class="mono">${lim.toFixed(3)}</td>
-          <td class="muted">—</td>
-          <td>${badgeHtml("bad","Erreur API")}</td>
-          <td class="muted">—</td>
-          <td class="muted">—</td>
-        </tr>`;
-      continue;
-    }
-
-    const c = (Array.isArray(data)?data:[])
-      .map(d=>({t:d.eventDate, v:+d.value}))
-      .filter(d=>d.t && Number.isFinite(d.v));
-
-    if(!c.length){
-      anyWarn=true;
-      el("results").innerHTML += `
-        <tr>
-          <td><b>${name}</b></td>
-          <td class="mono">${lim.toFixed(3)}</td>
-          <td class="muted">—</td>
-          <td>${badgeHtml("warn","Aucune donnée")}</td>
-          <td class="muted">—</td>
-          <td class="muted">—</td>
-        </tr>`;
-      continue;
-    }
-
-    const vals = c.map(d=>d.v);
-    const vmin = Math.min(...vals);
-    const vmax = Math.max(...vals);
-
-    let windows = [];
-    let start = null;
-    for(let i=1;i<c.length;i++){
-      if(c[i-1].v >= lim && c[i].v < lim) start = c[i-1];
-      if(c[i-1].v < lim && c[i].v >= lim && start){
-        windows.push({s:start.t, e:c[i].t});
-        start = null;
-      }
-    }
-    if(start) windows.push({s:start.t, e:null});
-
-    let stat = badgeHtml("ok","OK");
-    let interd = "—";
-    if(windows.length){
-      anyWarn=true;
-      stat = badgeHtml("warn","Restriction");
-      interd = windows.map(w=>{
-        const a = shortDT(w.s);
-        const b = w.e ? shortDT(w.e) : "fin fenêtre";
-        return `<div class="mono">• de ${a} à ${b}</div>`;
-      }).join("");
-    }
-
-    const tirantMax = (vmin + prof - dsqR);
-
-    el("results").innerHTML += `
-      <tr>
-        <td><b>${name}</b></td>
-        <td class="mono">${lim.toFixed(3)}</td>
-        <td class="mono">${vmin.toFixed(3)} / ${vmax.toFixed(3)}</td>
-        <td>${stat}</td>
-        <td>${interd}</td>
-        <td class="mono">${tirantMax.toFixed(2)}</td>
-      </tr>`;
-  }
-
-  if(anyBad) setStatus("bad","Terminé (erreurs)");
-  else if(anyWarn) setStatus("warn","Terminé");
-  else setStatus("ok","Terminé");
-}
-
 /* ================= MARÉE 24H ================= */
 const TIDE_HOURS = 24;
 let tideChart = null;
@@ -668,7 +547,6 @@ const crosshairPlugin = {
   afterDatasetsDraw(chart){
     const active = chart.getActiveElements();
     if(!active || !active.length) return;
-
     const {ctx, chartArea: {top, bottom}} = chart;
     const first = active[0];
     const meta = chart.getDatasetMeta(first.datasetIndex);
@@ -722,9 +600,7 @@ function build2hTicks(startMs, hours=24){
   const ticks = [];
   const step = 2 * 60 * 60 * 1000;
   const n = Math.floor(hours / 2);
-  for(let i=0;i<=n;i++){
-    ticks.push(d.getTime() + i*step);
-  }
+  for(let i=0;i<=n;i++) ticks.push(d.getTime() + i*step);
   return ticks;
 }
 
@@ -897,8 +773,17 @@ async function plotTide24h(){
             grid: { color:"rgba(255,255,255,.06)" },
             ticks: {
               color:"#8ea0c6",
-              stepSize: 0.1,
-              callback:(v)=>Number(v).toFixed(2)
+
+              /* ✅ graduations au mètre quand positif
+                 - si l'axe inclut du négatif: on garde 0.5 entre -0.5 et 0, puis 1m au-dessus
+                 - sinon (>=0): seulement 1m
+              */
+              stepSize: (yMinAxis < 0) ? 0.5 : 1,
+              callback:(v)=>{
+                const n = Number(v);
+                // affichage avec 2 décimales pour cohérence (peut être 0.00, 1.00, 2.00)
+                return n.toFixed(2);
+              }
             }
           }
         }
@@ -943,7 +828,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   tideSel.innerHTML = Object.keys(STATIONS).map(name => `<option value="${name}">${name}</option>`).join("");
   tideSel.value = "Neuville";
 
-  el("run").onclick = runRestrictions;
   el("plotTide").onclick = plotTide24h;
 
   el("vessel").addEventListener("change", onSharedInputsChanged);
@@ -951,7 +835,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   el("tirant").addEventListener("input", onSharedInputsChanged);
 
   el("clear").onclick = ()=>{
-    el("results").innerHTML=`<tr><td colspan="6" class="muted">Aucun calcul</td></tr>`;
     el("tideStatus").textContent="—";
     if(tideChart){ tideChart.destroy(); tideChart=null; }
     hidePinnedBox();
