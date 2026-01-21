@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Restrictions – IWLS</title>
+<title>IWLS – Restrictions / Marée / Squat</title>
 
 <style>
 :root{
   --bg:#0b1020; --text:#e7ecff; --muted:#8ea0c6;
   --line:rgba(255,255,255,.12);
-  --ok:#2dd4bf; --warn:#fbbf24; --bad:#fb7185;
+  --ok:#2dd4bf; --warn:#fbbf24; --bad:#fb7185; --accent:#6aa9ff;
   --radius:16px;
   --mono: ui-monospace, Menlo, Consolas, monospace;
 }
@@ -49,13 +49,14 @@ h1{margin:0}
   border-radius:12px;border:1px solid var(--line);
   background:rgba(0,0,0,.25);color:var(--text)
 }
+.field input:focus,.field select:focus{outline:none;border-color:rgba(106,169,255,.65);box-shadow:0 0 0 3px rgba(106,169,255,.18)}
 .grid{display:grid;gap:12px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:900px){.row2{grid-template-columns:1fr}}
 
 button{
   padding:10px 14px;border-radius:14px;
-  background:#6aa9ff;border:0;font-weight:800;cursor:pointer
+  background:var(--accent);border:0;font-weight:800;cursor:pointer
 }
 button.secondary{
   background:transparent;color:var(--text);
@@ -72,6 +73,7 @@ button:disabled{opacity:.55; cursor:not-allowed}
 .ok .dot{background:var(--ok)}
 .warn .dot{background:var(--warn)}
 .bad .dot{background:var(--bad)}
+.neutral .dot{background:#a78bfa}
 
 .log{
   font-family:var(--mono);font-size:12px;
@@ -81,14 +83,15 @@ button:disabled{opacity:.55; cursor:not-allowed}
   max-height:220px;overflow:auto;white-space:pre-wrap
 }
 
+.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.18)}
 table{width:100%;border-collapse:collapse;min-width:850px;font-size:13px}
 th,td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
 th{color:var(--muted);text-align:left}
 tr:hover td{background:rgba(255,255,255,.04)}
-
 .mono{font-family:var(--mono)}
 .muted{color:var(--muted)}
 .small{font-size:12px}
+
 .kpi{display:flex; gap:10px; flex-wrap:wrap}
 .kpi .pill{
   border:1px solid var(--line);
@@ -104,32 +107,40 @@ tr:hover td{background:rgba(255,255,255,.04)}
   background:rgba(0,0,0,.22);
   padding:10px;
 }
-
-/* important pour le tactile: on veut pouvoir gérer touchmove nous-mêmes */
 canvas{ touch-action: none; }
+
+/* Squat table tweaks */
+.squatTable th,.squatTable td{ text-align:center; }
+.squatTable thead th{
+  position:sticky; top:0; background:rgba(0,0,0,.35);
+  backdrop-filter: blur(8px);
+  font-size: 14px; font-weight: 800;
+}
+.squatTable tbody th{ font-weight: 800; color: var(--text); }
+.squatHL td,.squatHL th{ background: rgba(255,255,255,.06); }
 </style>
 
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
 
 <header>
-  <h1>Calcul des restrictions – IWLS</h1>
+  <h1>IWLS – Restrictions / Marée / Squat</h1>
   <p class="subtitle">
-    Interdictions : <span class="mono">de HH:MM (jj/mm) à HH:MM (jj/mm)</span> •
-    Courbe de marée : tracé des <b>12</b> prochaines heures (<span class="mono">America/Toronto</span>)
+    • Interdictions : <span class="mono">de HH:MM (jj/mm) à HH:MM (jj/mm)</span><br>
+    • Marée : courbe <b>12h</b> avec crosshair + tooltip + drag tactile<br>
+    • Squat : tableau “Niveau d’eau requis” (référence)
   </p>
 </header>
 
 <main class="wrap">
 
-<!-- PARAMÈTRES -->
+<!-- COLONNE GAUCHE: Paramètres restrictions -->
 <section class="card">
   <div class="hd">
-    Paramètres
-    <span class="badge ok"><span class="dot"></span><span id="status">Prêt</span></span>
+    Paramètres restrictions
+    <span class="badge neutral"><span class="dot"></span><span id="status">Prêt</span></span>
   </div>
   <div class="bd grid">
     <div class="field">
@@ -164,14 +175,14 @@ canvas{ touch-action: none; }
   </div>
 </section>
 
-<!-- DROITE: Résultats + Courbe -->
+<!-- COLONNE DROITE -->
 <section class="grid">
 
   <!-- RÉSULTATS -->
   <section class="card">
     <div class="hd">Résultats par station</div>
     <div class="bd">
-      <div style="overflow:auto">
+      <div class="tableWrap">
         <table>
           <thead>
             <tr>
@@ -191,7 +202,7 @@ canvas{ touch-action: none; }
     </div>
   </section>
 
-  <!-- COURBE DE MARÉE -->
+  <!-- MARÉE 12H -->
   <section class="card">
     <div class="hd">
       Courbe de marée (12 prochaines heures)
@@ -221,8 +232,41 @@ canvas{ touch-action: none; }
       </div>
 
       <div class="muted small">
-        Astuce: sur mobile, touche puis glisse sur la courbe — la ligne verticale + le tooltip restent actifs pendant le drag.
+        Souris: survol / drag • Tactile: touche et glisse → tooltip + ligne verticale restent actifs.
       </div>
+    </div>
+  </section>
+
+  <!-- SQUAT -->
+  <section class="card">
+    <div class="hd">Calcul squat</div>
+    <div class="bd grid">
+
+      <div class="row2">
+        <div class="field">
+          <label for="shipType">Type de navire</label>
+          <select id="shipType">
+            <option value="CONTENEUR">CONTENEUR</option>
+            <option value="AUTRES">AUTRES</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="beam">Largeur / Beam (m)</label>
+          <input id="beam" type="number" step="0.1" value="32.0">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="draft">Tirant d’eau / Draft (m)</label>
+        <input id="draft" type="number" step="0.1" value="10.5">
+      </div>
+
+      <div class="tableWrap">
+        <table id="resultTable" class="squatTable" aria-label="Niveau d'eau requis"></table>
+      </div>
+
+      <div class="muted small">Pour référence seulement.</div>
     </div>
   </section>
 
@@ -230,7 +274,7 @@ canvas{ touch-action: none; }
 </main>
 
 <script>
-/* ================= DONNÉES ================= */
+/* ================= DONNÉES STATIONS ================= */
 
 const STATIONS = {
   "Neuville":"5cebf1df3d0f4a073c4bbb38",
@@ -250,6 +294,7 @@ const OFFSET_10_7 = new Set(["Neuville","Portneuf","Deschaillons"]);
 const OFFSET_11_0 = new Set(["Batiscan"]);
 const DEFAULT_OFFSET = 11.3;
 
+/* Tables squat utilisées par le module restrictions (DsqR colonne 7) */
 const TABLE_CONT = {24:.79,26:.83,28:.84,30:.86,32:.87,34:.88,36:.89,38:.90,40:.91,42:.92,44:.93};
 const TABLE_AUT  = {24:.80,26:.85,28:.86,30:.88,32:.89,34:.91,36:.93,38:.94,40:.96,42:.97,44:.99};
 
@@ -258,20 +303,18 @@ const TABLE_AUT  = {24:.80,26:.85,28:.86,30:.88,32:.89,34:.91,36:.93,38:.94,40:.
 const el = id => document.getElementById(id);
 const log = s => el("log").textContent += s + "\n";
 
-function setStatus(cls, text){
-  const badge = document.querySelector(".badge");
-  badge.classList.remove("ok","warn","bad");
-  badge.classList.add(cls);
+function setStatus(kind, text){
+  const badge = document.querySelector("#status").closest(".badge");
+  badge.classList.remove("ok","warn","bad","neutral");
+  badge.classList.add(kind);
   el("status").textContent = text;
 }
-
-/* ================= HELPERS ================= */
 
 function roundLargeur(v){ return v < 24 ? 24 : Math.ceil(v/2)*2; }
 function offset(s){ return OFFSET_10_7.has(s) ? 10.7 : OFFSET_11_0.has(s) ? 11.0 : DEFAULT_OFFSET; }
 
-function badge(cls,txt){
-  return `<span class="badge ${cls}"><span class="dot"></span>${txt}</span>`;
+function badgeHtml(kind, txt){
+  return `<span class="badge ${kind}"><span class="dot"></span>${txt}</span>`;
 }
 
 function shortDT(z){
@@ -333,7 +376,7 @@ async function runRestrictions(){
   const L = roundLargeur(largeur);
   const dsqR = (vessel==="Conteneur" ? TABLE_CONT : TABLE_AUT)[L];
   if(dsqR == null){
-    log(`Largeur arrondie ${L} absente de la table squat.`);
+    log(`Largeur arrondie ${L} absente de la table squat (module restrictions).`);
     setStatus("bad","Erreur table");
     return;
   }
@@ -345,7 +388,7 @@ async function runRestrictions(){
   log(`Navire: ${vessel}`);
   log(`Largeur: ${largeur} → ${L}`);
   log(`Tirant: ${tirant}`);
-  log(`DsqR: ${dsqR}`);
+  log(`DsqR (colonne 7): ${dsqR}`);
   log("------------------------------------------------------------");
 
   let anyBad=false, anyWarn=false;
@@ -363,7 +406,7 @@ async function runRestrictions(){
           <td><b>${name}</b></td>
           <td class="mono">${lim.toFixed(3)}</td>
           <td class="muted">—</td>
-          <td>${badge("bad","Erreur API")}</td>
+          <td>${badgeHtml("bad","Erreur API")}</td>
           <td class="muted">${e.message}</td>
           <td class="muted">—</td>
         </tr>`;
@@ -381,7 +424,7 @@ async function runRestrictions(){
           <td><b>${name}</b></td>
           <td class="mono">${lim.toFixed(3)}</td>
           <td class="muted">—</td>
-          <td>${badge("warn","Aucune donnée")}</td>
+          <td>${badgeHtml("warn","Aucune donnée")}</td>
           <td class="muted">—</td>
           <td class="muted">—</td>
         </tr>`;
@@ -404,12 +447,12 @@ async function runRestrictions(){
     }
     if(start) windows.push({s:start.t, e:null});
 
-    let stat = badge("ok","OK");
+    let stat = badgeHtml("ok","OK");
     let interd = "—";
 
     if(windows.length){
       anyWarn=true;
-      stat = badge("warn","Restriction");
+      stat = badgeHtml("warn","Restriction");
       interd = windows.map(w=>{
         const a = shortDT(w.s);
         const b = w.e ? shortDT(w.e) : "fin fenêtre";
@@ -435,7 +478,7 @@ async function runRestrictions(){
   else setStatus("ok","Terminé");
 }
 
-/* ================= COURBE DE MARÉE (12H) ================= */
+/* ================= MARÉE 12H (crosshair + drag persistant) ================= */
 
 const TIDE_HOURS = 12;
 let tideChart = null;
@@ -450,10 +493,9 @@ function formatWindowToronto(fromUtc, toUtc){
   return `${fmt.format(new Date(fromUtc))} → ${fmt.format(new Date(toUtc))}`;
 }
 
-/* ---- Plugin: ligne verticale au curseur ---- */
 const crosshairPlugin = {
   id: "crosshairPlugin",
-  afterDatasetsDraw(chart, args, opts){
+  afterDatasetsDraw(chart){
     const active = chart.getActiveElements();
     if(!active || !active.length) return;
 
@@ -476,21 +518,18 @@ const crosshairPlugin = {
   }
 };
 
-/* ---- Interaction “toujours actif pendant le drag” (souris + tactile) ---- */
 function bindPersistentHover(canvas, chart){
   const activateFromEvent = (evt) => {
     if(!chart) return;
 
-    // Chart.js a besoin de l'événement “réel” pour calculer la position
     const els = chart.getElementsAtEventForMode(
       evt,
       "index",
-      { intersect: false },
+      { intersect:false },
       true
     );
 
     if(els && els.length){
-      // active éléments + tooltip
       chart.setActiveElements(els);
       chart.tooltip.setActiveElements(els, {x: evt.offsetX, y: evt.offsetY});
       chart.update("none");
@@ -504,26 +543,19 @@ function bindPersistentHover(canvas, chart){
     chart.update("none");
   };
 
-  // Souris / stylet (Pointer Events)
   canvas.addEventListener("pointermove", (e)=> activateFromEvent(e));
   canvas.addEventListener("pointerdown", (e)=> activateFromEvent(e));
   canvas.addEventListener("pointerleave", clearActive);
   canvas.addEventListener("pointerup", (e)=> activateFromEvent(e));
 
-  // Tactile: on force le suivi pendant le drag
-  // NB: passive:false requis pour preventDefault sur iOS
   canvas.addEventListener("touchstart", (e)=>{
     e.preventDefault();
-    // construire un pseudo-event compatible Chart.js (offsetX/Y)
     const t = e.touches[0];
     const rect = canvas.getBoundingClientRect();
     const pseudo = {
-      type: "mousemove",
-      target: canvas,
-      clientX: t.clientX,
-      clientY: t.clientY,
-      offsetX: t.clientX - rect.left,
-      offsetY: t.clientY - rect.top
+      type:"mousemove", target:canvas,
+      clientX:t.clientX, clientY:t.clientY,
+      offsetX:t.clientX-rect.left, offsetY:t.clientY-rect.top
     };
     activateFromEvent(pseudo);
   }, {passive:false});
@@ -533,12 +565,9 @@ function bindPersistentHover(canvas, chart){
     const t = e.touches[0];
     const rect = canvas.getBoundingClientRect();
     const pseudo = {
-      type: "mousemove",
-      target: canvas,
-      clientX: t.clientX,
-      clientY: t.clientY,
-      offsetX: t.clientX - rect.left,
-      offsetY: t.clientY - rect.top
+      type:"mousemove", target:canvas,
+      clientX:t.clientX, clientY:t.clientY,
+      offsetX:t.clientX-rect.left, offsetY:t.clientY-rect.top
     };
     activateFromEvent(pseudo);
   }, {passive:false});
@@ -581,14 +610,11 @@ async function plotTide12h(){
       return;
     }
 
-    const labels = pts.map(p => shortDT(p.t)); // HH:MM (jj/mm)
+    const labels = pts.map(p => shortDT(p.t));
     const values = pts.map(p => p.v);
 
-    const vmin = Math.min(...values);
-    const vmax = Math.max(...values);
-
-    el("tideMin").textContent = vmin.toFixed(3) + " m";
-    el("tideMax").textContent = vmax.toFixed(3) + " m";
+    el("tideMin").textContent = Math.min(...values).toFixed(3) + " m";
+    el("tideMax").textContent = Math.max(...values).toFixed(3) + " m";
     el("tideCount").textContent = String(values.length);
 
     const canvas = el("tideChart");
@@ -611,14 +637,7 @@ async function plotTide12h(){
       options: {
         responsive: true,
         maintainAspectRatio: false,
-
-        // interaction générale
-        interaction: {
-          mode: "index",
-          intersect: false,
-          axis: "x"
-        },
-
+        interaction: { mode:"index", intersect:false, axis:"x" },
         plugins: {
           legend: { labels: { color: "#e7ecff" } },
           tooltip: {
@@ -631,30 +650,18 @@ async function plotTide12h(){
             }
           }
         },
-
-        elements: {
-          point: { radius: 0, hoverRadius: 4, hitRadius: 12 }
-        },
-
+        elements: { point: { radius:0, hoverRadius:4, hitRadius:12 } },
         scales: {
-          x: {
-            ticks: { color: "#8ea0c6", maxRotation: 0, autoSkip: true },
-            grid: { color: "rgba(255,255,255,.06)" }
-          },
-          y: {
-            ticks: { color: "#8ea0c6", callback: (v) => Number(v).toFixed(2) },
-            grid: { color: "rgba(255,255,255,.06)" }
-          }
+          x: { ticks:{ color:"#8ea0c6", maxRotation:0, autoSkip:true }, grid:{ color:"rgba(255,255,255,.06)" } },
+          y: { ticks:{ color:"#8ea0c6", callback:(v)=>Number(v).toFixed(2) }, grid:{ color:"rgba(255,255,255,.06)" } }
         }
       }
     });
 
-    // ✅ rend le tooltip + crosshair “persistants” au drag
     bindPersistentHover(canvas, tideChart);
 
-    // ✅ active une position par défaut (dernier point), pour “voir quelque chose” tout de suite
-    const lastIndex = values.length - 1;
-    tideChart.setActiveElements([{datasetIndex:0, index:lastIndex}]);
+    // active par défaut sur le dernier point
+    tideChart.setActiveElements([{datasetIndex:0, index: values.length-1}]);
     tideChart.update("none");
 
     setTideStatus("OK");
@@ -666,12 +673,110 @@ async function plotTide12h(){
   }
 }
 
+/* ================= SQUAT MODULE (ton code) ================= */
+
+(() => {
+  const shipTypeEl = document.getElementById("shipType");
+  const beamEl = document.getElementById("beam");
+  const draftEl = document.getElementById("draft");
+  const tableEl = document.getElementById("resultTable");
+
+  // --- Tables (telles que fournies) ---
+  const CONTENEUR = [
+    [56,0.93,1.02,1.13,1.26,1.49,1.74,2.03,2.33,2.70],
+    [58,0.92,1.01,1.12,1.24,1.47,1.71,1.99,2.29,2.65],
+    [60,0.91,1.00,1.10,1.22,1.44,1.68,1.96,2.24,2.60],
+    [62,0.90,0.98,1.08,1.20,1.42,1.65,1.92,2.20,2.55],
+    [64,0.89,0.97,1.07,1.18,1.39,1.62,1.88,2.16,2.50],
+    [66,0.88,0.96,1.05,1.16,1.36,1.58,1.84,2.12,2.45],
+    [68,0.87,0.94,1.03,1.14,1.34,1.55,1.80,2.08,2.40],
+    [70,0.86,0.93,1.01,1.11,1.31,1.52,1.76,2.03,2.34],
+    [72,0.84,0.91,1.00,1.09,1.28,1.48,1.72,1.98,2.29],
+    [74,0.83,0.90,0.98,1.07,1.25,1.45,1.68,1.93,2.23],
+    [76,0.79,0.88,0.96,1.04,1.22,1.41,1.63,1.88,2.17],
+  ];
+
+  const AUTRES = [
+    [56,0.99,1.10,1.23,1.39,1.65,1.93,2.24,2.57,2.98],
+    [58,0.97,1.08,1.21,1.36,1.61,1.88,2.18,2.51,2.91],
+    [60,0.96,1.06,1.18,1.32,1.57,1.83,2.13,2.44,2.84],
+    [62,0.94,1.04,1.16,1.29,1.53,1.78,2.08,2.39,2.77],
+    [64,0.93,1.02,1.13,1.26,1.49,1.74,2.02,2.32,2.69],
+    [66,0.91,1.00,1.10,1.23,1.45,1.70,1.97,2.26,2.62],
+    [68,0.90,0.98,1.08,1.20,1.42,1.65,1.91,2.20,2.55],
+    [70,0.88,0.96,1.05,1.16,1.36,1.59,1.84,2.12,2.46],
+    [72,0.86,0.94,1.03,1.13,1.33,1.54,1.78,2.05,2.37],
+    [74,0.84,0.93,1.01,1.10,1.29,1.50,1.73,2.00,2.30],
+    [76,0.80,0.90,0.97,1.06,1.24,1.44,1.66,1.92,2.21],
+  ];
+
+  const DEPTHS = [10.7, 11.0, 11.3];
+  const SPEEDS = [7,8,9,10,11,12,13,14,15];
+  const HIGHLIGHT = new Set([8,10,12,14]);
+
+  function vlookupApprox(x, table) {
+    let idx = 0;
+    for (let i = 0; i < table.length; i++) {
+      if (table[i][0] <= x) idx = i;
+      else break;
+    }
+    return table[idx];
+  }
+
+  function compute(ship, beam, draft) {
+    const lookupX = 100 - beam;
+    const table = ship === "CONTENEUR" ? CONTENEUR : AUTRES;
+    const row = vlookupApprox(lookupX, table);
+
+    const result = {};
+    SPEEDS.forEach((s, i) => {
+      result[s] = {};
+      DEPTHS.forEach(d => {
+        result[s][d] = row[i + 1] - (d - draft);
+      });
+    });
+    return result;
+  }
+
+  function render(result) {
+    let thead = "<thead><tr><th>Vitesse</th>";
+    DEPTHS.forEach(d => thead += `<th>${d.toFixed(1)} m</th>`);
+    thead += "</tr></thead>";
+
+    let tbody = "<tbody>";
+    SPEEDS.forEach(s => {
+      const trClass = HIGHLIGHT.has(s) ? ' class="squatHL"' : "";
+      tbody += `<tr${trClass}><th>${s}</th>`;
+      DEPTHS.forEach(d => {
+        tbody += `<td>${result[s][d].toFixed(2)}</td>`;
+      });
+      tbody += "</tr>";
+    });
+    tbody += "</tbody>";
+
+    tableEl.innerHTML = thead + tbody;
+  }
+
+  function update() {
+    const beam = parseFloat(beamEl.value);
+    const draft = parseFloat(draftEl.value);
+    if (!Number.isFinite(beam) || !Number.isFinite(draft)) return;
+    render(compute(shipTypeEl.value, beam, draft));
+  }
+
+  shipTypeEl.addEventListener("change", update);
+  beamEl.addEventListener("input", update);
+  draftEl.addEventListener("input", update);
+  update();
+})();
+
 /* ================= INIT ================= */
 
 document.addEventListener("DOMContentLoaded",()=>{
   const n = new Date();
   el("date").value = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`;
 
+  // stations pour la marée
   const tideSel = el("tideStation");
   tideSel.innerHTML = Object.keys(STATIONS).map(name => `<option value="${name}">${name}</option>`).join("");
   tideSel.value = "Sorel";
@@ -688,10 +793,10 @@ document.addEventListener("DOMContentLoaded",()=>{
     el("tideMax").textContent="—";
     el("tideCount").textContent="—";
     if(tideChart){ tideChart.destroy(); tideChart=null; }
-    setStatus("ok","Prêt");
+    setStatus("neutral","Prêt");
   };
 
-  log("Prêt. Calculer restrictions ou tracer la courbe de marée (12h).");
+  log("Prêt. Calculer restrictions, tracer marée 12h, et utiliser le module squat.");
 });
 </script>
 
