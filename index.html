@@ -40,7 +40,7 @@ h1{margin:0}
   padding:14px 16px;
   border-bottom:1px solid var(--line);
   display:flex;justify-content:space-between;align-items:center;
-  font-weight:700;
+  font-weight:800;
 }
 .bd{padding:16px}
 .field label{font-size:12px;color:var(--muted)}
@@ -49,14 +49,17 @@ h1{margin:0}
   border-radius:12px;border:1px solid var(--line);
   background:rgba(0,0,0,.25);color:var(--text)
 }
-.field input:focus,.field select:focus{outline:none;border-color:rgba(106,169,255,.65);box-shadow:0 0 0 3px rgba(106,169,255,.18)}
+.field input:focus,.field select:focus{
+  outline:none;border-color:rgba(106,169,255,.65);
+  box-shadow:0 0 0 3px rgba(106,169,255,.18)
+}
 .grid{display:grid;gap:12px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:900px){.row2{grid-template-columns:1fr}}
 
 button{
   padding:10px 14px;border-radius:14px;
-  background:var(--accent);border:0;font-weight:800;cursor:pointer
+  background:var(--accent);border:0;font-weight:900;cursor:pointer
 }
 button.secondary{
   background:transparent;color:var(--text);
@@ -107,16 +110,16 @@ tr:hover td{background:rgba(255,255,255,.04)}
   background:rgba(0,0,0,.22);
   padding:10px;
 }
-canvas{ touch-action: none; }
+canvas{ touch-action:none; }
 
-/* Squat table tweaks */
+/* Squat table style */
 .squatTable th,.squatTable td{ text-align:center; }
 .squatTable thead th{
   position:sticky; top:0; background:rgba(0,0,0,.35);
   backdrop-filter: blur(8px);
-  font-size: 14px; font-weight: 800;
+  font-size: 14px; font-weight: 900;
 }
-.squatTable tbody th{ font-weight: 800; color: var(--text); }
+.squatTable tbody th{ font-weight: 900; color: var(--text); }
 .squatHL td,.squatHL th{ background: rgba(255,255,255,.06); }
 </style>
 
@@ -128,25 +131,26 @@ canvas{ touch-action: none; }
 <header>
   <h1>IWLS – Restrictions / Marée / Squat</h1>
   <p class="subtitle">
-    • Interdictions : <span class="mono">de HH:MM (jj/mm) à HH:MM (jj/mm)</span><br>
-    • Marée : courbe <b>12h</b> avec crosshair + tooltip + drag tactile<br>
-    • Squat : tableau “Niveau d’eau requis” (référence)
+    • Squat (haut) utilise les <b>mêmes entrées</b> que les restrictions (type navire / largeur / tirant)<br>
+    • Marée 12h (milieu) : tooltip + crosshair + drag tactile, avec <b>vitesse possible</b> calculée via Squat<br>
+    • Restrictions (bas) : interdictions <span class="mono">de HH:MM (jj/mm) à HH:MM (jj/mm)</span>
   </p>
 </header>
 
 <main class="wrap">
 
-<!-- COLONNE GAUCHE: Paramètres restrictions -->
+<!-- GAUCHE : Entrées uniques + Journal -->
 <section class="card">
   <div class="hd">
-    Paramètres restrictions
+    Entrées (communes)
     <span class="badge neutral"><span class="dot"></span><span id="status">Prêt</span></span>
   </div>
   <div class="bd grid">
     <div class="field">
-      <label>Date</label>
+      <label>Date (restrictions)</label>
       <input type="date" id="date">
     </div>
+
     <div class="field">
       <label>Type de navire</label>
       <select id="vessel">
@@ -154,20 +158,23 @@ canvas{ touch-action: none; }
         <option>Autre</option>
       </select>
     </div>
+
     <div class="row2">
       <div class="field">
-        <label>Largeur</label>
-        <input id="largeur" value="31.26">
+        <label>Largeur / Beam (m)</label>
+        <input id="largeur" value="32.0" inputmode="decimal">
       </div>
       <div class="field">
-        <label>Tirant</label>
-        <input id="tirant" value="11">
+        <label>Tirant d’eau / Draft (m)</label>
+        <input id="tirant" value="10.5" inputmode="decimal">
       </div>
     </div>
+
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button id="run">Calculer restrictions</button>
       <button class="secondary" id="clear">Effacer</button>
     </div>
+
     <div>
       <label class="muted">Journal</label>
       <div id="log" class="log"></div>
@@ -175,34 +182,26 @@ canvas{ touch-action: none; }
   </div>
 </section>
 
-<!-- COLONNE DROITE -->
+<!-- DROITE : Ordre demandé -> Squat, Marée, Restrictions -->
 <section class="grid">
 
-  <!-- RÉSULTATS -->
+  <!-- SQUAT EN HAUT -->
   <section class="card">
-    <div class="hd">Résultats par station</div>
-    <div class="bd">
+    <div class="hd">
+      Calcul squat (référence)
+      <span class="muted small" id="squatMeta">—</span>
+    </div>
+    <div class="bd grid">
       <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Station</th>
-              <th>Limite (m)</th>
-              <th>Min / Max</th>
-              <th>Statut</th>
-              <th>Interdictions</th>
-              <th>Tirant max</th>
-            </tr>
-          </thead>
-          <tbody id="results">
-            <tr><td colspan="6" class="muted">Aucun calcul</td></tr>
-          </tbody>
-        </table>
+        <table id="resultTable" class="squatTable" aria-label="Niveau d'eau requis"></table>
+      </div>
+      <div class="muted small">
+        Colonnes = offset station (10.7 / 11.0 / 11.3). Lignes = vitesse.
       </div>
     </div>
   </section>
 
-  <!-- MARÉE 12H -->
+  <!-- MARÉE AU MILIEU -->
   <section class="card">
     <div class="hd">
       Courbe de marée (12 prochaines heures)
@@ -232,41 +231,32 @@ canvas{ touch-action: none; }
       </div>
 
       <div class="muted small">
-        Souris: survol / drag • Tactile: touche et glisse → tooltip + ligne verticale restent actifs.
+        Astuce: glisse sur le graphique → tooltip + ligne verticale restent actifs.
       </div>
     </div>
   </section>
 
-  <!-- SQUAT -->
+  <!-- RESTRICTIONS EN BAS -->
   <section class="card">
-    <div class="hd">Calcul squat</div>
-    <div class="bd grid">
-
-      <div class="row2">
-        <div class="field">
-          <label for="shipType">Type de navire</label>
-          <select id="shipType">
-            <option value="CONTENEUR">CONTENEUR</option>
-            <option value="AUTRES">AUTRES</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="beam">Largeur / Beam (m)</label>
-          <input id="beam" type="number" step="0.1" value="32.0">
-        </div>
-      </div>
-
-      <div class="field">
-        <label for="draft">Tirant d’eau / Draft (m)</label>
-        <input id="draft" type="number" step="0.1" value="10.5">
-      </div>
-
+    <div class="hd">Restrictions par station</div>
+    <div class="bd">
       <div class="tableWrap">
-        <table id="resultTable" class="squatTable" aria-label="Niveau d'eau requis"></table>
+        <table>
+          <thead>
+            <tr>
+              <th>Station</th>
+              <th>Limite (m)</th>
+              <th>Min / Max</th>
+              <th>Statut</th>
+              <th>Interdictions</th>
+              <th>Tirant max</th>
+            </tr>
+          </thead>
+          <tbody id="results">
+            <tr><td colspan="6" class="muted">Aucun calcul</td></tr>
+          </tbody>
+        </table>
       </div>
-
-      <div class="muted small">Pour référence seulement.</div>
     </div>
   </section>
 
@@ -274,7 +264,7 @@ canvas{ touch-action: none; }
 </main>
 
 <script>
-/* ================= DONNÉES STATIONS ================= */
+/* ================= STATIONS + OFFSETS ================= */
 
 const STATIONS = {
   "Neuville":"5cebf1df3d0f4a073c4bbb38",
@@ -294,24 +284,62 @@ const OFFSET_10_7 = new Set(["Neuville","Portneuf","Deschaillons"]);
 const OFFSET_11_0 = new Set(["Batiscan"]);
 const DEFAULT_OFFSET = 11.3;
 
-/* Tables squat utilisées par le module restrictions (DsqR colonne 7) */
-const TABLE_CONT = {24:.79,26:.83,28:.84,30:.86,32:.87,34:.88,36:.89,38:.90,40:.91,42:.92,44:.93};
-const TABLE_AUT  = {24:.80,26:.85,28:.86,30:.88,32:.89,34:.91,36:.93,38:.94,40:.96,42:.97,44:.99};
+function stationOffset(st){
+  if(OFFSET_10_7.has(st)) return 10.7;
+  if(OFFSET_11_0.has(st)) return 11.0;
+  return DEFAULT_OFFSET;
+}
 
-/* ================= UI ================= */
+/* ================= RESTRICTIONS : DsqR (colonne vitesse 7) ================= */
+const TABLE_CONT_DsqR = {24:.79,26:.83,28:.84,30:.86,32:.87,34:.88,36:.89,38:.90,40:.91,42:.92,44:.93};
+const TABLE_AUT_DsqR  = {24:.80,26:.85,28:.86,30:.88,32:.89,34:.91,36:.93,38:.94,40:.96,42:.97,44:.99};
 
+function roundLargeur(v){ return v < 24 ? 24 : Math.ceil(v/2)*2; }
+
+/* ================= SQUAT TABLES (module) ================= */
+/* (tes tableaux) */
+const CONTENEUR = [
+  [56,0.93,1.02,1.13,1.26,1.49,1.74,2.03,2.33,2.70],
+  [58,0.92,1.01,1.12,1.24,1.47,1.71,1.99,2.29,2.65],
+  [60,0.91,1.00,1.10,1.22,1.44,1.68,1.96,2.24,2.60],
+  [62,0.90,0.98,1.08,1.20,1.42,1.65,1.92,2.20,2.55],
+  [64,0.89,0.97,1.07,1.18,1.39,1.62,1.88,2.16,2.50],
+  [66,0.88,0.96,1.05,1.16,1.36,1.58,1.84,2.12,2.45],
+  [68,0.87,0.94,1.03,1.14,1.34,1.55,1.80,2.08,2.40],
+  [70,0.86,0.93,1.01,1.11,1.31,1.52,1.76,2.03,2.34],
+  [72,0.84,0.91,1.00,1.09,1.28,1.48,1.72,1.98,2.29],
+  [74,0.83,0.90,0.98,1.07,1.25,1.45,1.68,1.93,2.23],
+  [76,0.79,0.88,0.96,1.04,1.22,1.41,1.63,1.88,2.17],
+];
+
+const AUTRES = [
+  [56,0.99,1.10,1.23,1.39,1.65,1.93,2.24,2.57,2.98],
+  [58,0.97,1.08,1.21,1.36,1.61,1.88,2.18,2.51,2.91],
+  [60,0.96,1.06,1.18,1.32,1.57,1.83,2.13,2.44,2.84],
+  [62,0.94,1.04,1.16,1.29,1.53,1.78,2.08,2.39,2.77],
+  [64,0.93,1.02,1.13,1.26,1.49,1.74,2.02,2.32,2.69],
+  [66,0.91,1.00,1.10,1.23,1.45,1.70,1.97,2.26,2.62],
+  [68,0.90,0.98,1.08,1.20,1.42,1.65,1.91,2.20,2.55],
+  [70,0.88,0.96,1.05,1.16,1.36,1.59,1.84,2.12,2.46],
+  [72,0.86,0.94,1.03,1.13,1.33,1.54,1.78,2.05,2.37],
+  [74,0.84,0.93,1.01,1.10,1.29,1.50,1.73,2.00,2.30],
+  [76,0.80,0.90,0.97,1.06,1.24,1.44,1.66,1.92,2.21],
+];
+
+const DEPTHS = [10.7, 11.0, 11.3];
+const SPEEDS = [7,8,9,10,11,12,13,14,15];
+const HIGHLIGHT = new Set([8,10,12,14]);
+
+/* ================= UI helpers ================= */
 const el = id => document.getElementById(id);
 const log = s => el("log").textContent += s + "\n";
 
 function setStatus(kind, text){
-  const badge = document.querySelector("#status").closest(".badge");
+  const badge = el("status").closest(".badge");
   badge.classList.remove("ok","warn","bad","neutral");
   badge.classList.add(kind);
   el("status").textContent = text;
 }
-
-function roundLargeur(v){ return v < 24 ? 24 : Math.ceil(v/2)*2; }
-function offset(s){ return OFFSET_10_7.has(s) ? 10.7 : OFFSET_11_0.has(s) ? 11.0 : DEFAULT_OFFSET; }
 
 function badgeHtml(kind, txt){
   return `<span class="badge ${kind}"><span class="dot"></span>${txt}</span>`;
@@ -336,14 +364,12 @@ function isoDate(d){
 function isoUtc(d){ return d.toISOString().replace(".000Z","Z"); }
 function toApiRange(fromDateUtc, toDateUtc){ return { from: isoUtc(fromDateUtc), to: isoUtc(toDateUtc) }; }
 
-/* ================= FETCH IWLS ================= */
-
+/* ================= IWLS fetch ================= */
 async function fetchIWLS(stationId, fromIsoZ, toIsoZ){
   const url =
     `https://api-iwls.dfo-mpo.gc.ca/api/v1/stations/${stationId}/data`+
     `?time-series-code=wlf-spine&from=${encodeURIComponent(fromIsoZ)}`+
     `&to=${encodeURIComponent(toIsoZ)}`;
-
   const r = await fetch(url);
   if(!r.ok){
     const t = await r.text().catch(()=> "");
@@ -352,8 +378,104 @@ async function fetchIWLS(stationId, fromIsoZ, toIsoZ){
   return await r.json();
 }
 
-/* ================= RESTRICTIONS ================= */
+/* ================= SQUAT compute (shared inputs) ================= */
+function vlookupApprox(x, table) {
+  let idx = 0;
+  for (let i = 0; i < table.length; i++) {
+    if (table[i][0] <= x) idx = i;
+    else break;
+  }
+  return table[idx];
+}
 
+function getInputsShared(){
+  const vessel = el("vessel").value; // "Conteneur" / "Autre"
+  const beam = Number(String(el("largeur").value).replace(",","."));
+  const draft = Number(String(el("tirant").value).replace(",","."));
+  return { vessel, beam, draft };
+}
+
+let squatCache = null;
+/*
+squatCache = {
+  shipKey: "CONTENEUR"|"AUTRES",
+  beam, draft,
+  required: { [speed]: { [depth]: number } }
+}
+*/
+function computeSquatRequired(shipKey, beam, draft){
+  const lookupX = 100 - beam;
+  const table = shipKey === "CONTENEUR" ? CONTENEUR : AUTRES;
+  const row = vlookupApprox(lookupX, table);
+
+  const required = {};
+  SPEEDS.forEach((s, i) => {
+    required[s] = {};
+    DEPTHS.forEach(d => {
+      required[s][d] = row[i + 1] - (d - draft);
+    });
+  });
+  return required;
+}
+
+function updateSquat(){
+  const { vessel, beam, draft } = getInputsShared();
+  if(!Number.isFinite(beam) || !Number.isFinite(draft)) return;
+
+  const shipKey = (vessel === "Conteneur") ? "CONTENEUR" : "AUTRES";
+  const required = computeSquatRequired(shipKey, beam, draft);
+
+  squatCache = { shipKey, beam, draft, required };
+
+  // meta
+  el("squatMeta").textContent = `${shipKey} • Beam ${beam.toFixed(1)} m • Draft ${draft.toFixed(1)} m`;
+
+  // render table
+  const tableEl = el("resultTable");
+
+  let thead = "<thead><tr><th>Vitesse</th>";
+  DEPTHS.forEach(d => thead += `<th>${d.toFixed(1)} m</th>`);
+  thead += "</tr></thead>";
+
+  let tbody = "<tbody>";
+  SPEEDS.forEach(s => {
+    const trClass = HIGHLIGHT.has(s) ? ' class="squatHL"' : "";
+    tbody += `<tr${trClass}><th>${s}</th>`;
+    DEPTHS.forEach(d => {
+      tbody += `<td>${required[s][d].toFixed(2)}</td>`;
+    });
+    tbody += "</tr>";
+  });
+  tbody += "</tbody>";
+
+  tableEl.innerHTML = thead + tbody;
+}
+
+/* ================= Speed possible from squat (for tide tooltip) ================= */
+function closestDepthCol(depth){
+  // depth is one of 10.7,11.0,11.3 normally
+  let best = DEPTHS[0], bestDist = Math.abs(depth-DEPTHS[0]);
+  for(const d of DEPTHS){
+    const dist = Math.abs(depth - d);
+    if(dist < bestDist){ best = d; bestDist = dist; }
+  }
+  return best;
+}
+
+function speedPossibleForStationWaterLevel(stationName, waterLevel){
+  if(!squatCache?.required || !Number.isFinite(waterLevel)) return null;
+
+  const dcol = closestDepthCol(stationOffset(stationName));
+  // find max speed where waterLevel >= required[s][dcol]
+  let best = null;
+  for(const s of SPEEDS){
+    const req = squatCache.required[s][dcol];
+    if(Number.isFinite(req) && waterLevel >= req) best = s;
+  }
+  return best; // number or null
+}
+
+/* ================= RESTRICTIONS ================= */
 async function runRestrictions(){
   el("log").textContent="";
   setStatus("warn","Calcul…");
@@ -363,20 +485,17 @@ async function runRestrictions(){
   const today = new Date(); today.setHours(0,0,0,0);
   if(d < today){ log("Date invalide (passé)."); setStatus("bad","Erreur"); return; }
 
-  const largeur = Number(el("largeur").value.replace(",","."));
-  const tirant  = Number(el("tirant").value.replace(",","."));
-  const vessel  = el("vessel").value;
-
-  if(!Number.isFinite(largeur) || !Number.isFinite(tirant)){
+  const { vessel, beam:largeurIn, draft:tirant } = getInputsShared();
+  if(!Number.isFinite(largeurIn) || !Number.isFinite(tirant)){
     log("Largeur ou tirant invalide.");
     setStatus("bad","Erreur");
     return;
   }
 
-  const L = roundLargeur(largeur);
-  const dsqR = (vessel==="Conteneur" ? TABLE_CONT : TABLE_AUT)[L];
+  const largeurRounded = roundLargeur(largeurIn);
+  const dsqR = (vessel==="Conteneur" ? TABLE_CONT_DsqR : TABLE_AUT_DsqR)[largeurRounded];
   if(dsqR == null){
-    log(`Largeur arrondie ${L} absente de la table squat (module restrictions).`);
+    log(`Largeur arrondie ${largeurRounded} absente de la table DsqR.`);
     setStatus("bad","Erreur table");
     return;
   }
@@ -386,15 +505,16 @@ async function runRestrictions(){
 
   log(`Date: ${day1}`);
   log(`Navire: ${vessel}`);
-  log(`Largeur: ${largeur} → ${L}`);
+  log(`Largeur: ${largeurIn} → ${largeurRounded}`);
   log(`Tirant: ${tirant}`);
-  log(`DsqR (colonne 7): ${dsqR}`);
+  log(`DsqR (table[${largeurRounded}][7]): ${dsqR}`);
   log("------------------------------------------------------------");
 
   let anyBad=false, anyWarn=false;
 
   for(const [name,id] of Object.entries(STATIONS)){
-    const lim = tirant + dsqR - offset(name);
+    const off = stationOffset(name);
+    const lim = tirant + dsqR - off;
 
     let data;
     try{
@@ -460,7 +580,7 @@ async function runRestrictions(){
       }).join("");
     }
 
-    const tirantMax = (vmin + offset(name) - dsqR);
+    const tirantMax = (vmin + off - dsqR);
 
     el("results").innerHTML += `
       <tr>
@@ -478,7 +598,7 @@ async function runRestrictions(){
   else setStatus("ok","Terminé");
 }
 
-/* ================= MARÉE 12H (crosshair + drag persistant) ================= */
+/* ================= MARÉE 12H (crosshair + drag persistant + vitesse possible) ================= */
 
 const TIDE_HOURS = 12;
 let tideChart = null;
@@ -521,14 +641,7 @@ const crosshairPlugin = {
 function bindPersistentHover(canvas, chart){
   const activateFromEvent = (evt) => {
     if(!chart) return;
-
-    const els = chart.getElementsAtEventForMode(
-      evt,
-      "index",
-      { intersect:false },
-      true
-    );
-
+    const els = chart.getElementsAtEventForMode(evt, "index", { intersect:false }, true);
     if(els && els.length){
       chart.setActiveElements(els);
       chart.tooltip.setActiveElements(els, {x: evt.offsetX, y: evt.offsetY});
@@ -552,24 +665,22 @@ function bindPersistentHover(canvas, chart){
     e.preventDefault();
     const t = e.touches[0];
     const rect = canvas.getBoundingClientRect();
-    const pseudo = {
+    activateFromEvent({
       type:"mousemove", target:canvas,
       clientX:t.clientX, clientY:t.clientY,
       offsetX:t.clientX-rect.left, offsetY:t.clientY-rect.top
-    };
-    activateFromEvent(pseudo);
+    });
   }, {passive:false});
 
   canvas.addEventListener("touchmove", (e)=>{
     e.preventDefault();
     const t = e.touches[0];
     const rect = canvas.getBoundingClientRect();
-    const pseudo = {
+    activateFromEvent({
       type:"mousemove", target:canvas,
       clientX:t.clientX, clientY:t.clientY,
       offsetX:t.clientX-rect.left, offsetY:t.clientY-rect.top
-    };
-    activateFromEvent(pseudo);
+    });
   }, {passive:false});
 
   canvas.addEventListener("touchend", (e)=>{
@@ -646,7 +757,13 @@ async function plotTide12h(){
             intersect: false,
             callbacks: {
               title: (items) => items?.[0]?.label ? `Heure: ${items[0].label}` : "",
-              label: (ctx) => Number.isFinite(ctx.parsed?.y) ? `Marée: ${ctx.parsed.y.toFixed(3)} m` : ""
+              label: (ctx) => Number.isFinite(ctx.parsed?.y) ? `Marée: ${ctx.parsed.y.toFixed(3)} m` : "",
+              afterBody: (items) => {
+                const y = items?.[0]?.parsed?.y;
+                const sp = speedPossibleForStationWaterLevel(stationName, y);
+                if(sp == null) return ["Vitesse possible: —"];
+                return [`Vitesse possible: ${sp} nd (offset ${stationOffset(stationName).toFixed(1)})`];
+              }
             }
           }
         },
@@ -673,104 +790,12 @@ async function plotTide12h(){
   }
 }
 
-/* ================= SQUAT MODULE (ton code) ================= */
-
-(() => {
-  const shipTypeEl = document.getElementById("shipType");
-  const beamEl = document.getElementById("beam");
-  const draftEl = document.getElementById("draft");
-  const tableEl = document.getElementById("resultTable");
-
-  // --- Tables (telles que fournies) ---
-  const CONTENEUR = [
-    [56,0.93,1.02,1.13,1.26,1.49,1.74,2.03,2.33,2.70],
-    [58,0.92,1.01,1.12,1.24,1.47,1.71,1.99,2.29,2.65],
-    [60,0.91,1.00,1.10,1.22,1.44,1.68,1.96,2.24,2.60],
-    [62,0.90,0.98,1.08,1.20,1.42,1.65,1.92,2.20,2.55],
-    [64,0.89,0.97,1.07,1.18,1.39,1.62,1.88,2.16,2.50],
-    [66,0.88,0.96,1.05,1.16,1.36,1.58,1.84,2.12,2.45],
-    [68,0.87,0.94,1.03,1.14,1.34,1.55,1.80,2.08,2.40],
-    [70,0.86,0.93,1.01,1.11,1.31,1.52,1.76,2.03,2.34],
-    [72,0.84,0.91,1.00,1.09,1.28,1.48,1.72,1.98,2.29],
-    [74,0.83,0.90,0.98,1.07,1.25,1.45,1.68,1.93,2.23],
-    [76,0.79,0.88,0.96,1.04,1.22,1.41,1.63,1.88,2.17],
-  ];
-
-  const AUTRES = [
-    [56,0.99,1.10,1.23,1.39,1.65,1.93,2.24,2.57,2.98],
-    [58,0.97,1.08,1.21,1.36,1.61,1.88,2.18,2.51,2.91],
-    [60,0.96,1.06,1.18,1.32,1.57,1.83,2.13,2.44,2.84],
-    [62,0.94,1.04,1.16,1.29,1.53,1.78,2.08,2.39,2.77],
-    [64,0.93,1.02,1.13,1.26,1.49,1.74,2.02,2.32,2.69],
-    [66,0.91,1.00,1.10,1.23,1.45,1.70,1.97,2.26,2.62],
-    [68,0.90,0.98,1.08,1.20,1.42,1.65,1.91,2.20,2.55],
-    [70,0.88,0.96,1.05,1.16,1.36,1.59,1.84,2.12,2.46],
-    [72,0.86,0.94,1.03,1.13,1.33,1.54,1.78,2.05,2.37],
-    [74,0.84,0.93,1.01,1.10,1.29,1.50,1.73,2.00,2.30],
-    [76,0.80,0.90,0.97,1.06,1.24,1.44,1.66,1.92,2.21],
-  ];
-
-  const DEPTHS = [10.7, 11.0, 11.3];
-  const SPEEDS = [7,8,9,10,11,12,13,14,15];
-  const HIGHLIGHT = new Set([8,10,12,14]);
-
-  function vlookupApprox(x, table) {
-    let idx = 0;
-    for (let i = 0; i < table.length; i++) {
-      if (table[i][0] <= x) idx = i;
-      else break;
-    }
-    return table[idx];
-  }
-
-  function compute(ship, beam, draft) {
-    const lookupX = 100 - beam;
-    const table = ship === "CONTENEUR" ? CONTENEUR : AUTRES;
-    const row = vlookupApprox(lookupX, table);
-
-    const result = {};
-    SPEEDS.forEach((s, i) => {
-      result[s] = {};
-      DEPTHS.forEach(d => {
-        result[s][d] = row[i + 1] - (d - draft);
-      });
-    });
-    return result;
-  }
-
-  function render(result) {
-    let thead = "<thead><tr><th>Vitesse</th>";
-    DEPTHS.forEach(d => thead += `<th>${d.toFixed(1)} m</th>`);
-    thead += "</tr></thead>";
-
-    let tbody = "<tbody>";
-    SPEEDS.forEach(s => {
-      const trClass = HIGHLIGHT.has(s) ? ' class="squatHL"' : "";
-      tbody += `<tr${trClass}><th>${s}</th>`;
-      DEPTHS.forEach(d => {
-        tbody += `<td>${result[s][d].toFixed(2)}</td>`;
-      });
-      tbody += "</tr>";
-    });
-    tbody += "</tbody>";
-
-    tableEl.innerHTML = thead + tbody;
-  }
-
-  function update() {
-    const beam = parseFloat(beamEl.value);
-    const draft = parseFloat(draftEl.value);
-    if (!Number.isFinite(beam) || !Number.isFinite(draft)) return;
-    render(compute(shipTypeEl.value, beam, draft));
-  }
-
-  shipTypeEl.addEventListener("change", update);
-  beamEl.addEventListener("input", update);
-  draftEl.addEventListener("input", update);
-  update();
-})();
-
-/* ================= INIT ================= */
+/* ================= INIT + shared updates ================= */
+function onSharedInputsChanged(){
+  updateSquat();
+  // Si la marée est déjà affichée, le tooltip utilisera automatiquement le nouveau squatCache
+  // (pas besoin de retracer).
+}
 
 document.addEventListener("DOMContentLoaded",()=>{
   const n = new Date();
@@ -781,8 +806,13 @@ document.addEventListener("DOMContentLoaded",()=>{
   tideSel.innerHTML = Object.keys(STATIONS).map(name => `<option value="${name}">${name}</option>`).join("");
   tideSel.value = "Sorel";
 
+  // listeners
   el("run").onclick = runRestrictions;
   el("plotTide").onclick = plotTide12h;
+
+  el("vessel").addEventListener("change", onSharedInputsChanged);
+  el("largeur").addEventListener("input", onSharedInputsChanged);
+  el("tirant").addEventListener("input", onSharedInputsChanged);
 
   el("clear").onclick = ()=>{
     el("log").textContent="";
@@ -794,9 +824,13 @@ document.addEventListener("DOMContentLoaded",()=>{
     el("tideCount").textContent="—";
     if(tideChart){ tideChart.destroy(); tideChart=null; }
     setStatus("neutral","Prêt");
+    onSharedInputsChanged();
   };
 
-  log("Prêt. Calculer restrictions, tracer marée 12h, et utiliser le module squat.");
+  // init
+  onSharedInputsChanged();
+  setStatus("neutral","Prêt");
+  log("Prêt. Les entrées sont partagées (Squat / Marée / Restrictions).");
 });
 </script>
 
