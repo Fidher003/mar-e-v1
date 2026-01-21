@@ -104,9 +104,12 @@ tr:hover td{background:rgba(255,255,255,.04)}
   background:rgba(0,0,0,.22);
   padding:10px;
 }
+
+/* important pour le tactile: on veut pouvoir gérer touchmove nous-mêmes */
+canvas{ touch-action: none; }
 </style>
 
-<!-- Chart.js (CDN) -->
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
@@ -116,7 +119,7 @@ tr:hover td{background:rgba(255,255,255,.04)}
   <h1>Calcul des restrictions – IWLS</h1>
   <p class="subtitle">
     Interdictions : <span class="mono">de HH:MM (jj/mm) à HH:MM (jj/mm)</span> •
-    Courbe de marée : tracé des 8 prochaines heures (timezone <span class="mono">America/Toronto</span>)
+    Courbe de marée : tracé des <b>12</b> prochaines heures (<span class="mono">America/Toronto</span>)
   </p>
 </header>
 
@@ -161,7 +164,7 @@ tr:hover td{background:rgba(255,255,255,.04)}
   </div>
 </section>
 
-<!-- COLONNE DROITE: Résultats + Courbe -->
+<!-- DROITE: Résultats + Courbe -->
 <section class="grid">
 
   <!-- RÉSULTATS -->
@@ -191,7 +194,7 @@ tr:hover td{background:rgba(255,255,255,.04)}
   <!-- COURBE DE MARÉE -->
   <section class="card">
     <div class="hd">
-      Courbe de marée (8 prochaines heures)
+      Courbe de marée (12 prochaines heures)
       <span class="muted small" id="tideStatus">—</span>
     </div>
     <div class="bd grid">
@@ -202,7 +205,7 @@ tr:hover td{background:rgba(255,255,255,.04)}
         </div>
         <div class="field">
           <label>&nbsp;</label>
-          <button id="plotTide">Tracer 8h</button>
+          <button id="plotTide">Tracer 12h</button>
         </div>
       </div>
 
@@ -214,17 +217,16 @@ tr:hover td{background:rgba(255,255,255,.04)}
       </div>
 
       <div class="chartWrap">
-        <canvas id="tideChart" height="120"></canvas>
+        <canvas id="tideChart" height="130"></canvas>
       </div>
 
       <div class="muted small">
-        Note: si tu veux la courbe “à partir de maintenant”, elle utilise l’heure actuelle.
+        Astuce: sur mobile, touche puis glisse sur la courbe — la ligne verticale + le tooltip restent actifs pendant le drag.
       </div>
     </div>
   </section>
 
 </section>
-
 </main>
 
 <script>
@@ -251,7 +253,7 @@ const DEFAULT_OFFSET = 11.3;
 const TABLE_CONT = {24:.79,26:.83,28:.84,30:.86,32:.87,34:.88,36:.89,38:.90,40:.91,42:.92,44:.93};
 const TABLE_AUT  = {24:.80,26:.85,28:.86,30:.88,32:.89,34:.91,36:.93,38:.94,40:.96,42:.97,44:.99};
 
-/* ================= OUTILS UI ================= */
+/* ================= UI ================= */
 
 const el = id => document.getElementById(id);
 const log = s => el("log").textContent += s + "\n";
@@ -283,22 +285,13 @@ function shortDT(z){
 }
 
 function isoDate(d){
-  // YYYY-MM-DD (UTC safe for date input usage)
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth()+1).padStart(2,"0");
   const dd = String(d.getDate()).padStart(2,"0");
   return `${yyyy}-${mm}-${dd}`;
 }
-
-function isoUtc(d){
-  // full ISO UTC Z
-  return d.toISOString().replace(".000Z","Z");
-}
-
-function toApiRange(fromDateUtc, toDateUtc){
-  // IWLS expects from=YYYY-MM-DDTHH:MM:SSZ
-  return { from: isoUtc(fromDateUtc), to: isoUtc(toDateUtc) };
-}
+function isoUtc(d){ return d.toISOString().replace(".000Z","Z"); }
+function toApiRange(fromDateUtc, toDateUtc){ return { from: isoUtc(fromDateUtc), to: isoUtc(toDateUtc) }; }
 
 /* ================= FETCH IWLS ================= */
 
@@ -328,8 +321,8 @@ async function runRestrictions(){
   if(d < today){ log("Date invalide (passé)."); setStatus("bad","Erreur"); return; }
 
   const largeur = Number(el("largeur").value.replace(",","."));
-  const tirant = Number(el("tirant").value.replace(",","."));
-  const vessel = el("vessel").value;
+  const tirant  = Number(el("tirant").value.replace(",","."));
+  const vessel  = el("vessel").value;
 
   if(!Number.isFinite(largeur) || !Number.isFinite(tirant)){
     log("Largeur ou tirant invalide.");
@@ -355,14 +348,13 @@ async function runRestrictions(){
   log(`DsqR: ${dsqR}`);
   log("------------------------------------------------------------");
 
-  let anyBad = false, anyWarn=false;
+  let anyBad=false, anyWarn=false;
 
   for(const [name,id] of Object.entries(STATIONS)){
     const lim = tirant + dsqR - offset(name);
 
     let data;
     try{
-      // même fenêtre que ta version simplifiée (00:00 → jour+1 23:57)
       data = await fetchIWLS(id, `${day1}T00:00:00Z`, `${day2}T23:57:00Z`);
     }catch(e){
       anyBad = true;
@@ -383,6 +375,7 @@ async function runRestrictions(){
       .filter(d=>d.t && Number.isFinite(d.v));
 
     if(!c.length){
+      anyWarn=true;
       el("results").innerHTML += `
         <tr>
           <td><b>${name}</b></td>
@@ -392,7 +385,6 @@ async function runRestrictions(){
           <td class="muted">—</td>
           <td class="muted">—</td>
         </tr>`;
-      anyWarn=true;
       continue;
     }
 
@@ -400,23 +392,23 @@ async function runRestrictions(){
     const vmin = Math.min(...vals);
     const vmax = Math.max(...vals);
 
-    // construire fenêtres d'interdiction "de → à"
+    // fenêtres d'interdiction "de → à"
     let windows = [];
     let start = null;
     for(let i=1;i<c.length;i++){
-      if(c[i-1].v >= lim && c[i].v < lim) start = c[i-1];         // débute
+      if(c[i-1].v >= lim && c[i].v < lim) start = c[i-1];
       if(c[i-1].v < lim && c[i].v >= lim && start){
-        windows.push({s:start.t, e:c[i].t});                      // termine
+        windows.push({s:start.t, e:c[i].t});
         start = null;
       }
     }
-    if(start) windows.push({s:start.t, e:null});                  // ouverte
+    if(start) windows.push({s:start.t, e:null});
 
     let stat = badge("ok","OK");
     let interd = "—";
 
     if(windows.length){
-      anyWarn = true;
+      anyWarn=true;
       stat = badge("warn","Restriction");
       interd = windows.map(w=>{
         const a = shortDT(w.s);
@@ -443,35 +435,121 @@ async function runRestrictions(){
   else setStatus("ok","Terminé");
 }
 
-/* ================= COURBE DE MARÉE (8H) ================= */
+/* ================= COURBE DE MARÉE (12H) ================= */
 
+const TIDE_HOURS = 12;
 let tideChart = null;
 
-function setTideStatus(text){
-  el("tideStatus").textContent = text;
-}
+function setTideStatus(text){ el("tideStatus").textContent = text; }
 
 function formatWindowToronto(fromUtc, toUtc){
-  // affichage simple
-  const f = new Intl.DateTimeFormat("fr-CA", {
+  const fmt = new Intl.DateTimeFormat("fr-CA",{
     timeZone:"America/Toronto",
-    hour:"2-digit", minute:"2-digit", day:"2-digit", month:"2-digit",
-    hour12:false
-  }).format(new Date(fromUtc));
-  const t = new Intl.DateTimeFormat("fr-CA", {
-    timeZone:"America/Toronto",
-    hour:"2-digit", minute:"2-digit", day:"2-digit", month:"2-digit",
-    hour12:false
-  }).format(new Date(toUtc));
-  return `${f} → ${t}`;
+    hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit",hour12:false
+  });
+  return `${fmt.format(new Date(fromUtc))} → ${fmt.format(new Date(toUtc))}`;
 }
 
-function toTorontoLabel(isoZ){
-  // HH:MM (jj/mm)
-  return shortDT(isoZ);
+/* ---- Plugin: ligne verticale au curseur ---- */
+const crosshairPlugin = {
+  id: "crosshairPlugin",
+  afterDatasetsDraw(chart, args, opts){
+    const active = chart.getActiveElements();
+    if(!active || !active.length) return;
+
+    const {ctx, chartArea: {top, bottom}} = chart;
+    const first = active[0];
+
+    const meta = chart.getDatasetMeta(first.datasetIndex);
+    const pt = meta?.data?.[first.index];
+    if(!pt) return;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,255,.45)";
+    ctx.setLineDash([4,4]);
+    ctx.moveTo(pt.x, top);
+    ctx.lineTo(pt.x, bottom);
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+
+/* ---- Interaction “toujours actif pendant le drag” (souris + tactile) ---- */
+function bindPersistentHover(canvas, chart){
+  const activateFromEvent = (evt) => {
+    if(!chart) return;
+
+    // Chart.js a besoin de l'événement “réel” pour calculer la position
+    const els = chart.getElementsAtEventForMode(
+      evt,
+      "index",
+      { intersect: false },
+      true
+    );
+
+    if(els && els.length){
+      // active éléments + tooltip
+      chart.setActiveElements(els);
+      chart.tooltip.setActiveElements(els, {x: evt.offsetX, y: evt.offsetY});
+      chart.update("none");
+    }
+  };
+
+  const clearActive = () => {
+    if(!chart) return;
+    chart.setActiveElements([]);
+    chart.tooltip.setActiveElements([], {x:0,y:0});
+    chart.update("none");
+  };
+
+  // Souris / stylet (Pointer Events)
+  canvas.addEventListener("pointermove", (e)=> activateFromEvent(e));
+  canvas.addEventListener("pointerdown", (e)=> activateFromEvent(e));
+  canvas.addEventListener("pointerleave", clearActive);
+  canvas.addEventListener("pointerup", (e)=> activateFromEvent(e));
+
+  // Tactile: on force le suivi pendant le drag
+  // NB: passive:false requis pour preventDefault sur iOS
+  canvas.addEventListener("touchstart", (e)=>{
+    e.preventDefault();
+    // construire un pseudo-event compatible Chart.js (offsetX/Y)
+    const t = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const pseudo = {
+      type: "mousemove",
+      target: canvas,
+      clientX: t.clientX,
+      clientY: t.clientY,
+      offsetX: t.clientX - rect.left,
+      offsetY: t.clientY - rect.top
+    };
+    activateFromEvent(pseudo);
+  }, {passive:false});
+
+  canvas.addEventListener("touchmove", (e)=>{
+    e.preventDefault();
+    const t = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const pseudo = {
+      type: "mousemove",
+      target: canvas,
+      clientX: t.clientX,
+      clientY: t.clientY,
+      offsetX: t.clientX - rect.left,
+      offsetY: t.clientY - rect.top
+    };
+    activateFromEvent(pseudo);
+  }, {passive:false});
+
+  canvas.addEventListener("touchend", (e)=>{
+    e.preventDefault();
+    clearActive();
+  }, {passive:false});
 }
 
-async function plotTide8h(){
+async function plotTide12h(){
   const stationName = el("tideStation").value;
   const stationId = STATIONS[stationName];
   if(!stationId) return;
@@ -482,8 +560,7 @@ async function plotTide8h(){
 
   try{
     const now = new Date();
-    const to = new Date(now.getTime() + 8*60*60*1000);
-
+    const to  = new Date(now.getTime() + TIDE_HOURS*60*60*1000);
     const {from, to:toIso} = toApiRange(now, to);
 
     el("tideWindow").textContent = formatWindowToronto(from, toIso);
@@ -500,11 +577,11 @@ async function plotTide8h(){
       el("tideMin").textContent = "—";
       el("tideMax").textContent = "—";
       el("tideCount").textContent = "0";
-      if(tideChart){ tideChart.destroy(); tideChart = null; }
+      if(tideChart){ tideChart.destroy(); tideChart=null; }
       return;
     }
 
-    const labels = pts.map(p => toTorontoLabel(p.t));
+    const labels = pts.map(p => shortDT(p.t)); // HH:MM (jj/mm)
     const values = pts.map(p => p.v);
 
     const vmin = Math.min(...values);
@@ -514,15 +591,17 @@ async function plotTide8h(){
     el("tideMax").textContent = vmax.toFixed(3) + " m";
     el("tideCount").textContent = String(values.length);
 
-    const ctx = el("tideChart").getContext("2d");
+    const canvas = el("tideChart");
+    const ctx = canvas.getContext("2d");
     if(tideChart) tideChart.destroy();
 
     tideChart = new Chart(ctx, {
       type: "line",
+      plugins: [crosshairPlugin],
       data: {
         labels,
         datasets: [{
-          label: `Niveau d'eau (m) – ${stationName}`,
+          label: `Niveau d'eau (m) – ${stationName} (12h)`,
           data: values,
           tension: 0.25,
           pointRadius: 0,
@@ -532,35 +611,57 @@ async function plotTide8h(){
       options: {
         responsive: true,
         maintainAspectRatio: false,
+
+        // interaction générale
+        interaction: {
+          mode: "index",
+          intersect: false,
+          axis: "x"
+        },
+
         plugins: {
           legend: { labels: { color: "#e7ecff" } },
           tooltip: {
+            enabled: true,
+            mode: "index",
+            intersect: false,
             callbacks: {
-              label: (ctx) => ` ${ctx.parsed.y.toFixed(3)} m`
+              title: (items) => items?.[0]?.label ? `Heure: ${items[0].label}` : "",
+              label: (ctx) => Number.isFinite(ctx.parsed?.y) ? `Marée: ${ctx.parsed.y.toFixed(3)} m` : ""
             }
           }
         },
+
+        elements: {
+          point: { radius: 0, hoverRadius: 4, hitRadius: 12 }
+        },
+
         scales: {
           x: {
             ticks: { color: "#8ea0c6", maxRotation: 0, autoSkip: true },
             grid: { color: "rgba(255,255,255,.06)" }
           },
           y: {
-            ticks: {
-              color: "#8ea0c6",
-              callback: (v) => Number(v).toFixed(2)
-            },
+            ticks: { color: "#8ea0c6", callback: (v) => Number(v).toFixed(2) },
             grid: { color: "rgba(255,255,255,.06)" }
           }
         }
       }
     });
 
+    // ✅ rend le tooltip + crosshair “persistants” au drag
+    bindPersistentHover(canvas, tideChart);
+
+    // ✅ active une position par défaut (dernier point), pour “voir quelque chose” tout de suite
+    const lastIndex = values.length - 1;
+    tideChart.setActiveElements([{datasetIndex:0, index:lastIndex}]);
+    tideChart.update("none");
+
     setTideStatus("OK");
-  } catch(e){
+  }catch(e){
     setTideStatus("Erreur");
     log(`[Marée] ${e.message || e}`);
-  } finally{
+  }finally{
     btn.disabled = false;
   }
 }
@@ -568,24 +669,20 @@ async function plotTide8h(){
 /* ================= INIT ================= */
 
 document.addEventListener("DOMContentLoaded",()=>{
-  // date par défaut = aujourd'hui
   const n = new Date();
   el("date").value = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`;
 
-  // remplir la liste des stations pour la marée
   const tideSel = el("tideStation");
-  tideSel.innerHTML = Object.keys(STATIONS)
-    .map(name => `<option value="${name}">${name}</option>`)
-    .join("");
-  tideSel.value = "Sorel"; // valeur par défaut (modifiable)
+  tideSel.innerHTML = Object.keys(STATIONS).map(name => `<option value="${name}">${name}</option>`).join("");
+  tideSel.value = "Sorel";
 
   el("run").onclick = runRestrictions;
-  el("plotTide").onclick = plotTide8h;
+  el("plotTide").onclick = plotTide12h;
 
   el("clear").onclick = ()=>{
     el("log").textContent="";
     el("results").innerHTML=`<tr><td colspan="6" class="muted">Aucun calcul</td></tr>`;
-    setTideStatus("—");
+    el("tideStatus").textContent="—";
     el("tideWindow").textContent="—";
     el("tideMin").textContent="—";
     el("tideMax").textContent="—";
@@ -594,7 +691,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     setStatus("ok","Prêt");
   };
 
-  log("Prêt. Calculer restrictions ou tracer la courbe de marée.");
+  log("Prêt. Calculer restrictions ou tracer la courbe de marée (12h).");
 });
 </script>
 
