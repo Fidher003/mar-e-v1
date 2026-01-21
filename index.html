@@ -103,21 +103,18 @@ tr:hover td{background:rgba(255,255,255,.04)}
   background:rgba(0,0,0,.22);
   padding:10px;
   position: relative;
+  padding-top:48px; /* espace pour la box */
 }
 canvas{ touch-action:none; }
 
-/* ✅ plus gros graphique (lisibilité) */
+/* plus gros graphique */
 #tideChart{ height: 240px !important; }
-
-/* ✅ réserver ~1cm en haut pour la box (mobile) */
-.chartWrap{
-  padding-top: 48px; /* ~1cm */
-}
 
 /* Tooltip pinné */
 .pinnedBox{
   position:absolute;
-  top:10px; right:10px;
+  top:10px;
+  right:10px;
   background: rgba(0,0,0,.70);
   border: 1px solid rgba(255,255,255,.16);
   border-radius: 12px;
@@ -129,14 +126,16 @@ canvas{ touch-action:none; }
   display:none;
 }
 
-/* ✅ sur mobile, box un peu plus compacte */
+/* ✅ Mobile: déplacer la box plus à gauche + empêcher qu'elle sorte de l'écran */
 @media(max-width:520px){
   .pinnedBox{
-    min-width: 200px;
-    max-width: 240px;
+    left:10px;          /* ← la pousse à gauche */
+    right:auto;         /* ← enlève l'ancrage à droite */
+    max-width: calc(100% - 20px);
+    min-width: 0;
+    width: auto;
     padding: 8px 10px;
     top: 8px;
-    right: 8px;
   }
 }
 
@@ -163,7 +162,7 @@ canvas{ touch-action:none; }
 .pinnedMuted{ color: var(--muted); }
 .pinnedWarn{ color: #ffd08a; font-weight: 900; }
 
-/* =================== SQUAT TABLE (sticky + séparateurs) =================== */
+/* =================== SQUAT TABLE =================== */
 .squatTable{
   border-collapse: separate;
   border-spacing: 0;
@@ -171,7 +170,7 @@ canvas{ touch-action:none; }
 }
 .squatTable th,.squatTable td{
   text-align:center;
-  padding: 6px 8px; /* moins d'espace */
+  padding: 6px 8px;
   border-bottom: 1px solid rgba(255,255,255,.10);
   background-clip: padding-box;
 }
@@ -185,27 +184,23 @@ canvas{ touch-action:none; }
   z-index: 3;
 }
 
-/* ✅ Colonne Vitesse sticky + masque (pour que les autres colonnes passent "dessous") */
+/* Colonne Vitesse sticky + masque */
 .squatTable thead th:first-child{
   position: sticky;
   left:0;
   z-index: 30;
   background: var(--stickBg);
-  box-shadow: 10px 0 0 rgba(0,0,0,.00); /* juste pour stabilité */
 }
 .squatTable tbody th{
   position: sticky;
   left: 0;
-  z-index: 25;                  /* au-dessus des td */
-  background: var(--stickBg);   /* opaque => cache ce qui passe dessous */
+  z-index: 25;
+  background: var(--stickBg);
   font-weight: 900;
   color: var(--text);
   font-size: 16px;
-  /* ✅ petite ombre pour séparation visuelle */
   box-shadow: 10px 0 12px rgba(0,0,0,.25);
 }
-
-/* Valeurs */
 .squatTable tbody td{
   font-size: 16px;
   font-weight: 800;
@@ -230,7 +225,6 @@ canvas{ touch-action:none; }
 
 <main class="wrap">
 
-<!-- GAUCHE : Entrées -->
 <section class="card">
   <div class="hd">
     <span class="hdLeft">Entrées</span>
@@ -267,10 +261,8 @@ canvas{ touch-action:none; }
   </div>
 </section>
 
-<!-- DROITE -->
 <section class="grid">
 
-  <!-- SQUAT -->
   <section class="card">
     <div class="hd">
       <span class="hdLeft">Calcul Squat</span>
@@ -283,7 +275,6 @@ canvas{ touch-action:none; }
     </div>
   </section>
 
-  <!-- MARÉE -->
   <section class="card">
     <div class="hd">
       <span class="hdLeft">Courbe de marée (24 prochaines heures)</span>
@@ -315,36 +306,7 @@ canvas{ touch-action:none; }
       </div>
 
       <div class="muted small">
-        Glisse sur le graphique → ligne verticale active + info en haut à droite.
-      </div>
-    </div>
-  </section>
-
-  <!-- RESTRICTIONS -->
-  <section class="card">
-    <div class="hd">
-      <span class="hdLeft">Restrictions par station</span>
-      <span class="hdRight">
-        <button id="run">Calculer restrictions</button>
-      </span>
-    </div>
-    <div class="bd">
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Station</th>
-              <th>Limite (m)</th>
-              <th>Min / Max</th>
-              <th>Statut</th>
-              <th>Interdictions</th>
-              <th>Tirant max</th>
-            </tr>
-          </thead>
-          <tbody id="results">
-            <tr><td colspan="6" class="muted">Aucun calcul</td></tr>
-          </tbody>
-        </table>
+        Glisse sur le graphique → ligne verticale active + info en haut.
       </div>
     </div>
   </section>
@@ -353,7 +315,6 @@ canvas{ touch-action:none; }
 </main>
 
 <script>
-/* ================= STATIONS + PROFONDEURS ================= */
 const STATIONS = {
   "Neuville":"5cebf1df3d0f4a073c4bbb38",
   "Portneuf":"5cebf1df3d0f4a073c4bbb56",
@@ -372,7 +333,6 @@ const PROF_10_7 = new Set(["Neuville","Portneuf"]);
 const PROF_10_6 = new Set(["Deschaillons"]);
 const PROF_11_0 = new Set(["Batiscan"]);
 const DEFAULT_PROF = 11.3;
-
 function stationProf(st){
   if(PROF_10_6.has(st)) return 10.6;
   if(PROF_10_7.has(st)) return 10.7;
@@ -380,12 +340,6 @@ function stationProf(st){
   return DEFAULT_PROF;
 }
 
-/* ================= RESTRICTIONS : DsqR (vitesse 7) ================= */
-const TABLE_CONT_DsqR = {24:.79,26:.83,28:.84,30:.86,32:.87,34:.88,36:.89,38:.90,40:.91,42:.92,44:.93};
-const TABLE_AUT_DsqR  = {24:.80,26:.85,28:.86,30:.88,32:.89,34:.91,36:.93,38:.94,40:.96,42:.97,44:.99};
-function roundLargeur(v){ return v < 24 ? 24 : Math.ceil(v/2)*2; }
-
-/* ================= SQUAT TABLES ================= */
 const CONTENEUR = [
   [56,0.93,1.02,1.13,1.26,1.49,1.74,2.03,2.33,2.70],
   [58,0.92,1.01,1.12,1.24,1.47,1.71,1.99,2.29,2.65],
@@ -417,15 +371,7 @@ const PROFS = [10.6, 10.7, 11.0, 11.3];
 const SPEEDS = [7,8,9,10,11,12,13,14,15];
 const HIGHLIGHT = new Set([8,10,12,14]);
 
-/* ================= Helpers ================= */
 const el = id => document.getElementById(id);
-
-function setStatus(kind, text){
-  const badge = el("status").closest(".badge");
-  badge.classList.remove("ok","warn","bad","neutral");
-  badge.classList.add(kind);
-  el("status").textContent = text;
-}
 
 function formatDM(dt){
   const p = new Intl.DateTimeFormat("fr-CA",{timeZone:"America/Toronto",day:"2-digit",month:"2-digit"}).formatToParts(dt);
@@ -448,7 +394,6 @@ function getInputsShared(){
   return { vessel, beam, draft };
 }
 
-/* ================= IWLS fetch ================= */
 async function fetchIWLS(stationId, fromIsoZ, toIsoZ){
   const url =
     `https://api-iwls.dfo-mpo.gc.ca/api/v1/stations/${stationId}/data`+
@@ -459,7 +404,6 @@ async function fetchIWLS(stationId, fromIsoZ, toIsoZ){
   return await r.json();
 }
 
-/* ================= SQUAT compute ================= */
 function vlookupApprox(x, table) {
   let idx = 0;
   for (let i = 0; i < table.length; i++) {
@@ -534,7 +478,6 @@ function speedPossibleForStationWaterLevel(stationName, waterLevel){
   return { speed: best, prof: col };
 }
 
-/* ================= MARÉE 24H ================= */
 const TIDE_HOURS = 24;
 let tideChart = null;
 let tideTicks = [];
@@ -724,8 +667,8 @@ async function plotTide24h(){
     const yMaxData = Math.max(...ys);
 
     const yMinAxis = (yMinData < 0) ? -0.5 : 0;
-    const yMaxAxis = niceCeil(yMaxData, 0.1);
-    const yMaxAxisPadded = Math.max(yMaxAxis, yMinAxis + 0.2);
+    const yMaxAxis = niceCeil(yMaxData, 1);              // ✅ grad au mètre au-dessus de 0
+    const yMaxAxisPadded = Math.max(yMaxAxis, yMinAxis + 2);
 
     const canvas = el("tideChart");
     const ctx = canvas.getContext("2d");
@@ -773,17 +716,8 @@ async function plotTide24h(){
             grid: { color:"rgba(255,255,255,.06)" },
             ticks: {
               color:"#8ea0c6",
-
-              /* ✅ graduations au mètre quand positif
-                 - si l'axe inclut du négatif: on garde 0.5 entre -0.5 et 0, puis 1m au-dessus
-                 - sinon (>=0): seulement 1m
-              */
               stepSize: (yMinAxis < 0) ? 0.5 : 1,
-              callback:(v)=>{
-                const n = Number(v);
-                // affichage avec 2 décimales pour cohérence (peut être 0.00, 1.00, 2.00)
-                return n.toFixed(2);
-              }
+              callback:(v)=>Number(v).toFixed(0) // ✅ affichage en mètres (0,1,2...) quand positif
             }
           }
         }
@@ -791,22 +725,6 @@ async function plotTide24h(){
     });
 
     bindPinnedHover(canvas, tideChart, stationName);
-
-    const last = series[series.length-1];
-    const dt = new Date(last.x);
-    const info = speedPossibleForStationWaterLevel(stationName, last.y);
-    const showRestrictions = (!info || info.speed == null || info.speed < 7);
-
-    setPinnedContent({
-      title:`Heure: ${formatHM(dt)} (${formatDM(dt)})`,
-      tideLine:`Marée: ${last.y.toFixed(3)} m`,
-      speedLine:(!info || info.speed==null) ? "Vitesse possible: —" : `Vitesse possible: ${info.speed} nd (Prof. ${info.prof.toFixed(1)})`,
-      showRestrictions
-    });
-    showPinnedBox();
-
-    tideChart.setActiveElements([{datasetIndex:0, index: series.length-1}]);
-    tideChart.update("none");
 
     setTideStatus("OK");
   }catch(e){
@@ -816,9 +734,6 @@ async function plotTide24h(){
     btn.disabled = false;
   }
 }
-
-/* ================= INIT ================= */
-function onSharedInputsChanged(){ updateSquat(); }
 
 document.addEventListener("DOMContentLoaded",()=>{
   const n = new Date();
@@ -830,20 +745,18 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   el("plotTide").onclick = plotTide24h;
 
-  el("vessel").addEventListener("change", onSharedInputsChanged);
-  el("largeur").addEventListener("input", onSharedInputsChanged);
-  el("tirant").addEventListener("input", onSharedInputsChanged);
+  el("vessel").addEventListener("change", updateSquat);
+  el("largeur").addEventListener("input", updateSquat);
+  el("tirant").addEventListener("input", updateSquat);
 
   el("clear").onclick = ()=>{
     el("tideStatus").textContent="—";
     if(tideChart){ tideChart.destroy(); tideChart=null; }
     hidePinnedBox();
-    setStatus("neutral","Prêt");
-    onSharedInputsChanged();
+    updateSquat();
   };
 
-  onSharedInputsChanged();
-  setStatus("neutral","Prêt");
+  updateSquat();
 });
 </script>
 
