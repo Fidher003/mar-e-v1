@@ -40,7 +40,10 @@ h1{margin:0}
   border-bottom:1px solid var(--line);
   display:flex;justify-content:space-between;align-items:center;
   font-weight:800;
+  gap:12px;
 }
+.hdLeft{display:flex; align-items:center; gap:12px;}
+.hdRight{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end;}
 .bd{padding:16px}
 .field label{font-size:12px;color:var(--muted)}
 .field input,.field select{
@@ -58,7 +61,8 @@ h1{margin:0}
 
 button{
   padding:10px 14px;border-radius:14px;
-  background:var(--accent);border:0;font-weight:900;cursor:pointer
+  background:var(--accent);border:0;font-weight:900;cursor:pointer;
+  color:#081022;
 }
 button.secondary{
   background:transparent;color:var(--text);
@@ -109,7 +113,7 @@ canvas{ touch-action:none; }
 .squatTable tbody td{ font-size: 16px; font-weight: 800; }
 .squatHL td,.squatHL th{ background: rgba(255,255,255,.06); }
 
-/* Tooltip "pinné" (en haut à droite) */
+/* Tooltip "pinné" */
 .pinnedBox{
   position:absolute;
   top:10px; right:10px;
@@ -117,8 +121,8 @@ canvas{ touch-action:none; }
   border: 1px solid rgba(255,255,255,.16);
   border-radius: 12px;
   padding: 10px 12px;
-  min-width: 210px;
-  max-width: 280px;
+  min-width: 220px;
+  max-width: 300px;
   pointer-events: none;
   box-shadow: 0 8px 30px rgba(0,0,0,.35);
   display:none;
@@ -133,10 +137,12 @@ canvas{ touch-action:none; }
   line-height: 1.35;
   display:flex;
   gap:8px;
+  align-items:flex-start;
 }
 .pinnedBullet{
   width:10px; flex:0 0 10px;
   display:flex; align-items:flex-start; justify-content:center;
+  margin-top: 1px;
 }
 .pinnedBullet:before{
   content:"";
@@ -146,6 +152,10 @@ canvas{ touch-action:none; }
   margin-top: 3px;
 }
 .pinnedMuted{ color: var(--muted); }
+.pinnedWarn{
+  color: #ffd08a;
+  font-weight: 900;
+}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -159,10 +169,10 @@ canvas{ touch-action:none; }
 
 <main class="wrap">
 
-<!-- GAUCHE : Entrées -->
+<!-- GAUCHE : Entrées (plus de bouton restrictions ici) -->
 <section class="card">
   <div class="hd">
-    Entrées
+    <span class="hdLeft">Entrées</span>
     <span class="badge neutral"><span class="dot"></span><span id="status">Prêt</span></span>
   </div>
   <div class="bd grid">
@@ -191,7 +201,6 @@ canvas{ touch-action:none; }
     </div>
 
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button id="run">Calculer restrictions</button>
       <button class="secondary" id="clear">Effacer</button>
     </div>
   </div>
@@ -203,8 +212,8 @@ canvas{ touch-action:none; }
   <!-- SQUAT -->
   <section class="card">
     <div class="hd">
-      Calcul Squat
-      <span class="muted small" id="squatMeta">—</span>
+      <span class="hdLeft">Calcul Squat</span>
+      <span class="hdRight muted small" id="squatMeta">—</span>
     </div>
     <div class="bd grid">
       <div class="tableWrap">
@@ -213,11 +222,11 @@ canvas{ touch-action:none; }
     </div>
   </section>
 
-  <!-- MARÉE -->
+  <!-- MARÉE 24H -->
   <section class="card">
     <div class="hd">
-      Courbe de marée (12 prochaines heures)
-      <span class="muted small" id="tideStatus">—</span>
+      <span class="hdLeft">Courbe de marée (24 prochaines heures)</span>
+      <span class="hdRight muted small" id="tideStatus">—</span>
     </div>
     <div class="bd grid">
       <div class="row2">
@@ -232,13 +241,16 @@ canvas{ touch-action:none; }
       </div>
 
       <div class="chartWrap" id="chartWrap">
-        <canvas id="tideChart" height="160"></canvas>
+        <canvas id="tideChart" height="170"></canvas>
 
-        <!-- Tooltip pinné (toujours visible quand on bouge sur le graphe) -->
+        <!-- Info pinnée -->
         <div class="pinnedBox" id="pinnedBox" aria-live="polite">
           <div class="pinnedTitle" id="pinnedTitle">Heure: —</div>
           <div class="pinnedLine"><span class="pinnedBullet"></span><span id="pinnedTide" class="pinnedMuted">Marée: —</span></div>
           <div class="pinnedLine"><span class="pinnedBullet"></span><span id="pinnedSpeed" class="pinnedMuted">Vitesse possible: —</span></div>
+          <div class="pinnedLine" id="pinnedRestrRow" style="display:none">
+            <span class="pinnedBullet"></span><span class="pinnedWarn">Restrictions</span>
+          </div>
         </div>
       </div>
 
@@ -248,9 +260,14 @@ canvas{ touch-action:none; }
     </div>
   </section>
 
-  <!-- RESTRICTIONS -->
+  <!-- RESTRICTIONS (bouton déplacé ici) -->
   <section class="card">
-    <div class="hd">Restrictions par station</div>
+    <div class="hd">
+      <span class="hdLeft">Restrictions par station</span>
+      <span class="hdRight">
+        <button id="run">Calculer restrictions</button>
+      </span>
+    </div>
     <div class="bd">
       <div class="tableWrap">
         <table>
@@ -291,8 +308,9 @@ const STATIONS = {
   "Frontenac":"5cebf1e03d0f4a073c4bbdee"
 };
 
+// ✅ Profondeurs: Deschaillons = 10.6 (pour marée vitesse + restrictions), Neuville/Portneuf = 10.7, Batiscan = 11.0, sinon 11.3
 const PROF_10_7 = new Set(["Neuville","Portneuf"]);
-const PROF_10_6 = new Set(["Deschaillons"]); // mise à jour
+const PROF_10_6 = new Set(["Deschaillons"]);
 const PROF_11_0 = new Set(["Batiscan"]);
 const DEFAULT_PROF = 11.3;
 
@@ -460,9 +478,10 @@ function closestProfCol(prof){
   return best;
 }
 
+// Renvoie vitesse max possible (>=7) pour une station à un niveau d'eau donné
 function speedPossibleForStationWaterLevel(stationName, waterLevel){
   if(!squatCache?.required || !Number.isFinite(waterLevel)) return null;
-  const prof = stationProf(stationName);
+  const prof = stationProf(stationName);      // ✅ inclut Deschaillons=10.6
   const col = closestProfCol(prof);
 
   let best = null;
@@ -498,7 +517,7 @@ async function runRestrictions(){
   let anyBad=false, anyWarn=false;
 
   for(const [name,id] of Object.entries(STATIONS)){
-    const prof = stationProf(name);
+    const prof = stationProf(name); // ✅ Deschaillons = 10.6 aussi ici
     const lim = tirant + dsqR - prof;
 
     let data;
@@ -581,8 +600,8 @@ async function runRestrictions(){
   else setStatus("ok","Terminé");
 }
 
-/* ================= MARÉE 12H (tooltip pinné) ================= */
-const TIDE_HOURS = 12;
+/* ================= MARÉE 24H (tooltip pinné) ================= */
+const TIDE_HOURS = 24;
 let tideChart = null;
 let tideTicks = [];
 let tideDateLabel = "";
@@ -613,6 +632,7 @@ const crosshairPlugin = {
   }
 };
 
+// ticks toutes les 2 heures sur 24h => 13 ticks
 const fixedXTicksPlugin = {
   id: "fixedXTicksPlugin",
   afterBuildTicks(chart, args){
@@ -639,7 +659,7 @@ const dateLabelPlugin = {
   }
 };
 
-function build2hTicks(startMs, hours=12){
+function build2hTicks(startMs, hours=24){
   const d = new Date(startMs);
   d.setMinutes(0,0,0);
   const h = d.getHours();
@@ -654,17 +674,13 @@ function build2hTicks(startMs, hours=12){
   return ticks;
 }
 
-// Tooltip pinné: on désactive le tooltip Chart.js et on utilise notre box fixe
-function showPinnedBox(){
-  el("pinnedBox").style.display = "block";
-}
-function hidePinnedBox(){
-  el("pinnedBox").style.display = "none";
-}
-function setPinnedContent({title, tideLine, speedLine}){
+function showPinnedBox(){ el("pinnedBox").style.display = "block"; }
+function hidePinnedBox(){ el("pinnedBox").style.display = "none"; }
+function setPinnedContent({title, tideLine, speedLine, showRestrictions}){
   el("pinnedTitle").textContent = title;
   el("pinnedTide").textContent = tideLine;
   el("pinnedSpeed").textContent = speedLine;
+  el("pinnedRestrRow").style.display = showRestrictions ? "flex" : "none";
 }
 
 function bindPinnedHover(canvas, chart, stationName){
@@ -675,7 +691,6 @@ function bindPinnedHover(canvas, chart, stationName){
       chart.setActiveElements(els);
       chart.update("none");
 
-      // Read active point
       const active = chart.getActiveElements();
       const idx = active?.[0]?.index;
       const ds = chart.data.datasets?.[0]?.data || [];
@@ -690,7 +705,10 @@ function bindPinnedHover(canvas, chart, stationName){
           ? "Vitesse possible: —"
           : `Vitesse possible: ${info.speed} nd (Prof. ${info.prof.toFixed(1)})`;
 
-        setPinnedContent({title, tideLine, speedLine});
+        // ✅ Si vitesse 7 nd impossible => afficher "Restrictions"
+        const showRestrictions = (!info || info.speed == null || info.speed < 7);
+
+        setPinnedContent({title, tideLine, speedLine, showRestrictions});
         showPinnedBox();
       }
     }
@@ -736,7 +754,7 @@ function bindPinnedHover(canvas, chart, stationName){
   }, {passive:false});
 }
 
-async function plotTide12h(){
+async function plotTide24h(){
   const stationName = el("tideStation").value;
   const stationId = STATIONS[stationName];
   if(!stationId) return;
@@ -772,7 +790,7 @@ async function plotTide12h(){
     const xMin = tideTicks[0];
     const xMax = tideTicks[tideTicks.length-1];
 
-    // Y: min = 0 ou -0.5 (une demi graduation sous 0 max)
+    // Y: min = 0 ou -0.5
     const ys = series.map(p => p.y);
     const yMinData = Math.min(...ys);
     const yMaxData = Math.max(...ys);
@@ -790,7 +808,7 @@ async function plotTide12h(){
       plugins: [crosshairPlugin, fixedXTicksPlugin, dateLabelPlugin],
       data: {
         datasets: [{
-          label: `Niveau d'eau (m) – ${stationName} (12h)`,
+          label: `Niveau d'eau (m) – ${stationName} (24h)`,
           data: series,
           parsing: false,
           tension: 0.25,
@@ -803,15 +821,11 @@ async function plotTide12h(){
         maintainAspectRatio: false,
         layout: { padding: { left: 0, right: 6, top: 0, bottom: 0 } },
         interaction: { mode:"index", intersect:false, axis:"x" },
-
-        // IMPORTANT: on coupe le tooltip Chart.js
         plugins: {
           legend: { labels: { color: "#e7ecff" } },
-          tooltip: { enabled: false }
+          tooltip: { enabled: false } // tooltip pinné
         },
-
         elements: { point: { radius:0, hoverRadius:4, hitRadius:12 } },
-
         scales: {
           x: {
             type: "linear",
@@ -821,10 +835,7 @@ async function plotTide12h(){
             grid: { color:"rgba(255,255,255,.06)" },
             ticks: {
               color:"#8ea0c6",
-              callback: (value) => {
-                const dt = new Date(Number(value));
-                return formatHM(dt);
-              }
+              callback: (value) => formatHM(new Date(Number(value)))
             }
           },
           y: {
@@ -842,22 +853,24 @@ async function plotTide12h(){
       }
     });
 
-    // Bind pinned hover
     bindPinnedHover(canvas, tideChart, stationName);
 
-    // active par défaut sur le dernier point + box visible
-    tideChart.setActiveElements([{datasetIndex:0, index: series.length-1}]);
-    tideChart.update("none");
-    // force pinned content update:
+    // défaut sur le dernier point
     const last = series[series.length-1];
     const dt = new Date(last.x);
     const info = speedPossibleForStationWaterLevel(stationName, last.y);
+    const showRestrictions = (!info || info.speed == null || info.speed < 7);
+
     setPinnedContent({
       title:`Heure: ${formatHM(dt)} (${formatDM(dt)})`,
       tideLine:`Marée: ${last.y.toFixed(3)} m`,
-      speedLine:(!info || info.speed==null) ? "Vitesse possible: —" : `Vitesse possible: ${info.speed} nd (Prof. ${info.prof.toFixed(1)})`
+      speedLine:(!info || info.speed==null) ? "Vitesse possible: —" : `Vitesse possible: ${info.speed} nd (Prof. ${info.prof.toFixed(1)})`,
+      showRestrictions
     });
     showPinnedBox();
+
+    tideChart.setActiveElements([{datasetIndex:0, index: series.length-1}]);
+    tideChart.update("none");
 
     setTideStatus("OK");
   }catch(e){
@@ -877,10 +890,13 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   const tideSel = el("tideStation");
   tideSel.innerHTML = Object.keys(STATIONS).map(name => `<option value="${name}">${name}</option>`).join("");
-  tideSel.value = "Sorel";
 
+  // ✅ Neuville par défaut
+  tideSel.value = "Neuville";
+
+  // boutons
   el("run").onclick = runRestrictions;
-  el("plotTide").onclick = plotTide12h;
+  el("plotTide").onclick = plotTide24h;
 
   el("vessel").addEventListener("change", onSharedInputsChanged);
   el("largeur").addEventListener("input", onSharedInputsChanged);
