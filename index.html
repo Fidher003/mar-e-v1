@@ -22,7 +22,6 @@ body{
 }
 header{max-width:1200px;margin:auto;padding:24px}
 h1{margin:0}
-.subtitle{color:var(--muted);font-size:14px; line-height:1.35}
 
 .wrap{
   max-width:1200px;margin:auto;padding:16px;
@@ -95,6 +94,7 @@ tr:hover td{background:rgba(255,255,255,.04)}
   border-radius:12px;
   background:rgba(0,0,0,.22);
   padding:10px;
+  position: relative;
 }
 canvas{ touch-action:none; }
 
@@ -108,6 +108,44 @@ canvas{ touch-action:none; }
 .squatTable tbody th{ font-weight: 900; color: var(--text); font-size: 16px; }
 .squatTable tbody td{ font-size: 16px; font-weight: 800; }
 .squatHL td,.squatHL th{ background: rgba(255,255,255,.06); }
+
+/* Tooltip "pinné" (en haut à droite) */
+.pinnedBox{
+  position:absolute;
+  top:10px; right:10px;
+  background: rgba(0,0,0,.70);
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-width: 210px;
+  max-width: 280px;
+  pointer-events: none;
+  box-shadow: 0 8px 30px rgba(0,0,0,.35);
+  display:none;
+}
+.pinnedTitle{
+  font-weight: 900;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.pinnedLine{
+  font-size: 12.5px;
+  line-height: 1.35;
+  display:flex;
+  gap:8px;
+}
+.pinnedBullet{
+  width:10px; flex:0 0 10px;
+  display:flex; align-items:flex-start; justify-content:center;
+}
+.pinnedBullet:before{
+  content:"";
+  width:8px; height:8px; border-radius:2px;
+  background: rgba(106,169,255,.9);
+  display:inline-block;
+  margin-top: 3px;
+}
+.pinnedMuted{ color: var(--muted); }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -117,11 +155,6 @@ canvas{ touch-action:none; }
 
 <header>
   <h1>IWLS – Restrictions / Marée / Squat</h1>
-  <p class="subtitle">
-    • Squat (haut) utilise les mêmes entrées (type navire / largeur / tirant)<br>
-    • Marée 12h (milieu) : tooltip + crosshair + drag tactile, avec vitesse possible (Prof.) via Squat<br>
-    • Restrictions (bas)
-  </p>
 </header>
 
 <main class="wrap">
@@ -198,12 +231,19 @@ canvas{ touch-action:none; }
         </div>
       </div>
 
-      <div class="chartWrap">
-        <canvas id="tideChart" height="140"></canvas>
+      <div class="chartWrap" id="chartWrap">
+        <canvas id="tideChart" height="160"></canvas>
+
+        <!-- Tooltip pinné (toujours visible quand on bouge sur le graphe) -->
+        <div class="pinnedBox" id="pinnedBox" aria-live="polite">
+          <div class="pinnedTitle" id="pinnedTitle">Heure: —</div>
+          <div class="pinnedLine"><span class="pinnedBullet"></span><span id="pinnedTide" class="pinnedMuted">Marée: —</span></div>
+          <div class="pinnedLine"><span class="pinnedBullet"></span><span id="pinnedSpeed" class="pinnedMuted">Vitesse possible: —</span></div>
+        </div>
       </div>
 
       <div class="muted small">
-        Glisse sur le graphique → tooltip + ligne verticale restent actifs.
+        Glisse sur le graphique → ligne verticale active + info en haut à droite.
       </div>
     </div>
   </section>
@@ -241,7 +281,7 @@ const STATIONS = {
   "Neuville":"5cebf1df3d0f4a073c4bbb38",
   "Portneuf":"5cebf1df3d0f4a073c4bbb56",
   "Deschaillons":"5cebf1df3d0f4a073c4bbb76",
-  "Batiscan":"5cebf1d0f4a073c4bbb91".replace("5cebf1d0f4a073c4bbb91","5cebf1df3d0f4a073c4bbb91"),
+  "Batiscan":"5cebf1df3d0f4a073c4bbb91",
   "Bécancour":"5cebf1e03d0f4a073c4bbda9",
   "Trois-Rivières":"5cebf1df3d0f4a073c4bbbac",
   "Lac St-Pierre":"5cebf1e03d0f4a073c4bbe49",
@@ -309,7 +349,6 @@ function setStatus(kind, text){
   badge.classList.add(kind);
   el("status").textContent = text;
 }
-
 function badgeHtml(kind, txt){
   return `<span class="badge ${kind}"><span class="dot"></span>${txt}</span>`;
 }
@@ -336,6 +375,7 @@ function isoDate(d){
 }
 function isoUtc(d){ return d.toISOString().replace(".000Z","Z"); }
 function toApiRange(fromDateUtc, toDateUtc){ return { from: isoUtc(fromDateUtc), to: isoUtc(toDateUtc) }; }
+function niceCeil(x, step){ return Math.ceil(x / step) * step; }
 
 function getInputsShared(){
   const vessel = el("vessel").value;
@@ -343,9 +383,6 @@ function getInputsShared(){
   const draft = Number(String(el("tirant").value).replace(",","."));
   return { vessel, beam, draft };
 }
-
-function niceCeil(x, step){ return Math.ceil(x / step) * step; }
-function niceFloor(x, step){ return Math.floor(x / step) * step; }
 
 /* ================= IWLS fetch ================= */
 async function fetchIWLS(stationId, fromIsoZ, toIsoZ){
@@ -544,11 +581,11 @@ async function runRestrictions(){
   else setStatus("ok","Terminé");
 }
 
-/* ================= MARÉE 12H (ticks 2h, Y à gauche, min Y = 0 ou -0.5) ================= */
+/* ================= MARÉE 12H (tooltip pinné) ================= */
 const TIDE_HOURS = 12;
 let tideChart = null;
-let tideTicks = [];     // timestamps ms (ticks toutes les 2 heures)
-let tideDateLabel = ""; // dd/mm (affiché une seule fois)
+let tideTicks = [];
+let tideDateLabel = "";
 
 function setTideStatus(text){ el("tideStatus").textContent = text; }
 
@@ -602,22 +639,68 @@ const dateLabelPlugin = {
   }
 };
 
-function bindPersistentHover(canvas, chart){
+function build2hTicks(startMs, hours=12){
+  const d = new Date(startMs);
+  d.setMinutes(0,0,0);
+  const h = d.getHours();
+  if(h % 2 === 1) d.setHours(h - 1);
+
+  const ticks = [];
+  const step = 2 * 60 * 60 * 1000;
+  const n = Math.floor(hours / 2);
+  for(let i=0;i<=n;i++){
+    ticks.push(d.getTime() + i*step);
+  }
+  return ticks;
+}
+
+// Tooltip pinné: on désactive le tooltip Chart.js et on utilise notre box fixe
+function showPinnedBox(){
+  el("pinnedBox").style.display = "block";
+}
+function hidePinnedBox(){
+  el("pinnedBox").style.display = "none";
+}
+function setPinnedContent({title, tideLine, speedLine}){
+  el("pinnedTitle").textContent = title;
+  el("pinnedTide").textContent = tideLine;
+  el("pinnedSpeed").textContent = speedLine;
+}
+
+function bindPinnedHover(canvas, chart, stationName){
   const activateFromEvent = (evt) => {
     if(!chart) return;
     const els = chart.getElementsAtEventForMode(evt, "index", { intersect:false }, true);
     if(els && els.length){
       chart.setActiveElements(els);
-      chart.tooltip.setActiveElements(els, {x: evt.offsetX, y: evt.offsetY});
       chart.update("none");
+
+      // Read active point
+      const active = chart.getActiveElements();
+      const idx = active?.[0]?.index;
+      const ds = chart.data.datasets?.[0]?.data || [];
+      const pt = ds[idx];
+      if(pt && Number.isFinite(pt.x) && Number.isFinite(pt.y)){
+        const dt = new Date(pt.x);
+        const title = `Heure: ${formatHM(dt)} (${formatDM(dt)})`;
+        const tideLine = `Marée: ${pt.y.toFixed(3)} m`;
+
+        const info = speedPossibleForStationWaterLevel(stationName, pt.y);
+        const speedLine = (!info || info.speed == null)
+          ? "Vitesse possible: —"
+          : `Vitesse possible: ${info.speed} nd (Prof. ${info.prof.toFixed(1)})`;
+
+        setPinnedContent({title, tideLine, speedLine});
+        showPinnedBox();
+      }
     }
   };
 
   const clearActive = () => {
     if(!chart) return;
     chart.setActiveElements([]);
-    chart.tooltip.setActiveElements([], {x:0,y:0});
     chart.update("none");
+    hidePinnedBox();
   };
 
   canvas.addEventListener("pointermove", (e)=> activateFromEvent(e));
@@ -653,21 +736,6 @@ function bindPersistentHover(canvas, chart){
   }, {passive:false});
 }
 
-function build2hTicks(startMs, hours=12){
-  const d = new Date(startMs);
-  d.setMinutes(0,0,0);
-  const h = d.getHours();
-  if(h % 2 === 1) d.setHours(h - 1);
-
-  const ticks = [];
-  const step = 2 * 60 * 60 * 1000; // 2h
-  const n = Math.floor(hours / 2); // 12h => 6 steps -> 7 ticks
-  for(let i=0;i<=n;i++){
-    ticks.push(d.getTime() + i*step);
-  }
-  return ticks;
-}
-
 async function plotTide12h(){
   const stationName = el("tideStation").value;
   const stationId = STATIONS[stationName];
@@ -676,6 +744,7 @@ async function plotTide12h(){
   const btn = el("plotTide");
   btn.disabled = true;
   setTideStatus("Chargement…");
+  hidePinnedBox();
 
   try{
     const now = new Date();
@@ -700,17 +769,15 @@ async function plotTide12h(){
 
     const series = pts.map(p => ({ x: new Date(p.t).getTime(), y: p.v }));
 
-    // X min/max = ticks (pas de zone vide)
     const xMin = tideTicks[0];
     const xMax = tideTicks[tideTicks.length-1];
 
-    // --- bornes Y intelligentes ---
-    // si min < 0 => min = -0.5 sinon min = 0
+    // Y: min = 0 ou -0.5 (une demi graduation sous 0 max)
     const ys = series.map(p => p.y);
     const yMinData = Math.min(...ys);
     const yMaxData = Math.max(...ys);
 
-    const yMinAxis = (yMinData < 0) ? -0.5 : 0;   // <- demande: 0.5m sous 0 max
+    const yMinAxis = (yMinData < 0) ? -0.5 : 0;
     const yMaxAxis = niceCeil(yMaxData, 0.1);
     const yMaxAxisPadded = Math.max(yMaxAxis, yMinAxis + 0.2);
 
@@ -737,29 +804,10 @@ async function plotTide12h(){
         layout: { padding: { left: 0, right: 6, top: 0, bottom: 0 } },
         interaction: { mode:"index", intersect:false, axis:"x" },
 
+        // IMPORTANT: on coupe le tooltip Chart.js
         plugins: {
           legend: { labels: { color: "#e7ecff" } },
-          tooltip: {
-            enabled: true,
-            mode: "index",
-            intersect: false,
-            callbacks: {
-              title: (items) => {
-                const x = items?.[0]?.parsed?.x;
-                if(!Number.isFinite(x)) return "";
-                const dt = new Date(x);
-                return `Heure: ${formatHM(dt)} (${formatDM(dt)})`;
-              },
-              label: (ctx) =>
-                Number.isFinite(ctx.parsed?.y) ? `Marée: ${ctx.parsed.y.toFixed(3)} m` : "",
-              afterBody: (items) => {
-                const y = items?.[0]?.parsed?.y;
-                const info = speedPossibleForStationWaterLevel(stationName, y);
-                if(!info || info.speed == null) return ["Vitesse possible: —"];
-                return [`Vitesse possible: ${info.speed} nd (Prof. ${info.prof.toFixed(1)})`];
-              }
-            }
-          }
+          tooltip: { enabled: false }
         },
 
         elements: { point: { radius:0, hoverRadius:4, hitRadius:12 } },
@@ -794,10 +842,22 @@ async function plotTide12h(){
       }
     });
 
-    bindPersistentHover(canvas, tideChart);
+    // Bind pinned hover
+    bindPinnedHover(canvas, tideChart, stationName);
 
+    // active par défaut sur le dernier point + box visible
     tideChart.setActiveElements([{datasetIndex:0, index: series.length-1}]);
     tideChart.update("none");
+    // force pinned content update:
+    const last = series[series.length-1];
+    const dt = new Date(last.x);
+    const info = speedPossibleForStationWaterLevel(stationName, last.y);
+    setPinnedContent({
+      title:`Heure: ${formatHM(dt)} (${formatDM(dt)})`,
+      tideLine:`Marée: ${last.y.toFixed(3)} m`,
+      speedLine:(!info || info.speed==null) ? "Vitesse possible: —" : `Vitesse possible: ${info.speed} nd (Prof. ${info.prof.toFixed(1)})`
+    });
+    showPinnedBox();
 
     setTideStatus("OK");
   }catch(e){
@@ -830,6 +890,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     el("results").innerHTML=`<tr><td colspan="6" class="muted">Aucun calcul</td></tr>`;
     el("tideStatus").textContent="—";
     if(tideChart){ tideChart.destroy(); tideChart=null; }
+    hidePinnedBox();
     setStatus("neutral","Prêt");
     onSharedInputsChanged();
   };
