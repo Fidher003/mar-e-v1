@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restrictions – IWLS</title>
+
+<style>
+:root{
+  --bg:#0b1020; --text:#e7ecff; --muted:#8ea0c6;
+  --line:rgba(255,255,255,.12);
+  --ok:#2dd4bf; --warn:#fbbf24; --bad:#fb7185;
+  --radius:16px;
+  --mono: ui-monospace, Menlo, Consolas, monospace;
+}
+body{
+  margin:0; font-family:system-ui,Segoe UI,Arial;
+  background:radial-gradient(900px 600px at 20% 0%,#1e3a8a,transparent),
+             radial-gradient(900px 600px at 80% 100%,#134e4a,transparent),
+             var(--bg);
+  color:var(--text);
+}
+header{max-width:1200px;margin:auto;padding:24px}
+h1{margin:0}
+.subtitle{color:var(--muted);font-size:14px; line-height:1.35}
+
+.wrap{
+  max-width:1200px;margin:auto;padding:16px;
+  display:grid;grid-template-columns:360px 1fr;gap:16px
+}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}}
+
+.card{
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  overflow:hidden;
+}
+.hd{
+  padding:14px 16px;
+  border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;
+  font-weight:700;
+}
+.bd{padding:16px}
+.field label{font-size:12px;color:var(--muted)}
+.field input,.field select{
+  width:100%;padding:10px;margin-top:4px;
+  border-radius:12px;border:1px solid var(--line);
+  background:rgba(0,0,0,.25);color:var(--text)
+}
+.grid{display:grid;gap:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:900px){.row2{grid-template-columns:1fr}}
+
+button{
+  padding:10px 14px;border-radius:14px;
+  background:#6aa9ff;border:0;font-weight:800;cursor:pointer
+}
+button.secondary{
+  background:transparent;color:var(--text);
+  border:1px solid var(--line)
+}
+button:disabled{opacity:.55; cursor:not-allowed}
+
+.badge{
+  display:inline-flex;gap:6px;align-items:center;
+  padding:5px 10px;border-radius:999px;
+  border:1px solid var(--line);font-size:12px
+}
+.dot{width:8px;height:8px;border-radius:50%}
+.ok .dot{background:var(--ok)}
+.warn .dot{background:var(--warn)}
+.bad .dot{background:var(--bad)}
+
+.log{
+  font-family:var(--mono);font-size:12px;
+  background:rgba(0,0,0,.3);
+  border:1px solid var(--line);
+  border-radius:12px;padding:10px;
+  max-height:220px;overflow:auto;white-space:pre-wrap
+}
+
+table{width:100%;border-collapse:collapse;min-width:850px;font-size:13px}
+th,td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);text-align:left}
+tr:hover td{background:rgba(255,255,255,.04)}
+
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.kpi{display:flex; gap:10px; flex-wrap:wrap}
+.kpi .pill{
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:6px 10px;
+  background:rgba(0,0,0,.25);
+  font-size:12px;
+  color:var(--muted);
+}
+.chartWrap{
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(0,0,0,.22);
+  padding:10px;
+}
+</style>
+
+<!-- Chart.js (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+
+<header>
+  <h1>Calcul des restrictions – IWLS</h1>
+  <p class="subtitle">
+    Interdictions : <span class="mono">de HH:MM (jj/mm) à HH:MM (jj/mm)</span> •
+    Courbe de marée : tracé des 8 prochaines heures (timezone <span class="mono">America/Toronto</span>)
+  </p>
+</header>
+
+<main class="wrap">
+
+<!-- PARAMÈTRES -->
+<section class="card">
+  <div class="hd">
+    Paramètres
+    <span class="badge ok"><span class="dot"></span><span id="status">Prêt</span></span>
+  </div>
+  <div class="bd grid">
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="date">
+    </div>
+    <div class="field">
+      <label>Type de navire</label>
+      <select id="vessel">
+        <option>Conteneur</option>
+        <option>Autre</option>
+      </select>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Largeur</label>
+        <input id="largeur" value="31.26">
+      </div>
+      <div class="field">
+        <label>Tirant</label>
+        <input id="tirant" value="11">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button id="run">Calculer restrictions</button>
+      <button class="secondary" id="clear">Effacer</button>
+    </div>
+    <div>
+      <label class="muted">Journal</label>
+      <div id="log" class="log"></div>
+    </div>
+  </div>
+</section>
+
+<!-- COLONNE DROITE: Résultats + Courbe -->
+<section class="grid">
+
+  <!-- RÉSULTATS -->
+  <section class="card">
+    <div class="hd">Résultats par station</div>
+    <div class="bd">
+      <div style="overflow:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Station</th>
+              <th>Limite (m)</th>
+              <th>Min / Max</th>
+              <th>Statut</th>
+              <th>Interdictions</th>
+              <th>Tirant max</th>
+            </tr>
+          </thead>
+          <tbody id="results">
+            <tr><td colspan="6" class="muted">Aucun calcul</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- COURBE DE MARÉE -->
+  <section class="card">
+    <div class="hd">
+      Courbe de marée (8 prochaines heures)
+      <span class="muted small" id="tideStatus">—</span>
+    </div>
+    <div class="bd grid">
+      <div class="row2">
+        <div class="field">
+          <label>Marégraphe (station)</label>
+          <select id="tideStation"></select>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="plotTide">Tracer 8h</button>
+        </div>
+      </div>
+
+      <div class="kpi">
+        <div class="pill">Fenêtre: <span class="mono" id="tideWindow">—</span></div>
+        <div class="pill">Min: <span class="mono" id="tideMin">—</span></div>
+        <div class="pill">Max: <span class="mono" id="tideMax">—</span></div>
+        <div class="pill">Points: <span class="mono" id="tideCount">—</span></div>
+      </div>
+
+      <div class="chartWrap">
+        <canvas id="tideChart" height="120"></canvas>
+      </div>
+
+      <div class="muted small">
+        Note: si tu veux la courbe “à partir de maintenant”, elle utilise l’heure actuelle.
+      </div>
+    </div>
+  </section>
+
+</section>
+
+</main>
+
+<script>
+/* ================= DONNÉES ================= */
+
+const STATIONS = {
+  "Neuville":"5cebf1df3d0f4a073c4bbb38",
+  "Portneuf":"5cebf1df3d0f4a073c4bbb56",
+  "Deschaillons":"5cebf1df3d0f4a073c4bbb76",
+  "Batiscan":"5cebf1df3d0f4a073c4bbb91",
+  "Bécancour":"5cebf1e03d0f4a073c4bbda9",
+  "Trois-Rivières":"5cebf1df3d0f4a073c4bbbac",
+  "Lac St-Pierre":"5cebf1e03d0f4a073c4bbe49",
+  "Sorel":"5cebf1e03d0f4a073c4bbe32",
+  "Contrecoeur":"5cebf1e03d0f4a073c4bbe1b",
+  "Varennes":"5cebf1e03d0f4a073c4bbe04",
+  "Frontenac":"5cebf1e03d0f4a073c4bbdee"
+};
+
+const OFFSET_10_7 = new Set(["Neuville","Portneuf","Deschaillons"]);
+const OFFSET_11_0 = new Set(["Batiscan"]);
+const DEFAULT_OFFSET = 11.3;
+
+const TABLE_CONT = {24:.79,26:.83,28:.84,30:.86,32:.87,34:.88,36:.89,38:.90,40:.91,42:.92,44:.93};
+const TABLE_AUT  = {24:.80,26:.85,28:.86,30:.88,32:.89,34:.91,36:.93,38:.94,40:.96,42:.97,44:.99};
+
+/* ================= OUTILS UI ================= */
+
+const el = id => document.getElementById(id);
+const log = s => el("log").textContent += s + "\n";
+
+function setStatus(cls, text){
+  const badge = document.querySelector(".badge");
+  badge.classList.remove("ok","warn","bad");
+  badge.classList.add(cls);
+  el("status").textContent = text;
+}
+
+/* ================= HELPERS ================= */
+
+function roundLargeur(v){ return v < 24 ? 24 : Math.ceil(v/2)*2; }
+function offset(s){ return OFFSET_10_7.has(s) ? 10.7 : OFFSET_11_0.has(s) ? 11.0 : DEFAULT_OFFSET; }
+
+function badge(cls,txt){
+  return `<span class="badge ${cls}"><span class="dot"></span>${txt}</span>`;
+}
+
+function shortDT(z){
+  const p = new Intl.DateTimeFormat("fr-CA",{
+    timeZone:"America/Toronto",
+    hour:"2-digit",minute:"2-digit",
+    day:"2-digit",month:"2-digit",hour12:false
+  }).formatToParts(new Date(z));
+  const g = t => (p.find(x=>x.type===t)||{}).value;
+  return `${g("hour")}:${g("minute")} (${g("day")}/${g("month")})`;
+}
+
+function isoDate(d){
+  // YYYY-MM-DD (UTC safe for date input usage)
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function isoUtc(d){
+  // full ISO UTC Z
+  return d.toISOString().replace(".000Z","Z");
+}
+
+function toApiRange(fromDateUtc, toDateUtc){
+  // IWLS expects from=YYYY-MM-DDTHH:MM:SSZ
+  return { from: isoUtc(fromDateUtc), to: isoUtc(toDateUtc) };
+}
+
+/* ================= FETCH IWLS ================= */
+
+async function fetchIWLS(stationId, fromIsoZ, toIsoZ){
+  const url =
+    `https://api-iwls.dfo-mpo.gc.ca/api/v1/stations/${stationId}/data`+
+    `?time-series-code=wlf-spine&from=${encodeURIComponent(fromIsoZ)}`+
+    `&to=${encodeURIComponent(toIsoZ)}`;
+
+  const r = await fetch(url);
+  if(!r.ok){
+    const t = await r.text().catch(()=> "");
+    throw new Error(`HTTP ${r.status} ${r.statusText}${t ? " – "+t.slice(0,120) : ""}`);
+  }
+  return await r.json();
+}
+
+/* ================= RESTRICTIONS ================= */
+
+async function runRestrictions(){
+  el("log").textContent="";
+  setStatus("warn","Calcul…");
+  el("results").innerHTML = "";
+
+  const d = new Date(el("date").value+"T00:00");
+  const today = new Date(); today.setHours(0,0,0,0);
+  if(d < today){ log("Date invalide (passé)."); setStatus("bad","Erreur"); return; }
+
+  const largeur = Number(el("largeur").value.replace(",","."));
+  const tirant = Number(el("tirant").value.replace(",","."));
+  const vessel = el("vessel").value;
+
+  if(!Number.isFinite(largeur) || !Number.isFinite(tirant)){
+    log("Largeur ou tirant invalide.");
+    setStatus("bad","Erreur");
+    return;
+  }
+
+  const L = roundLargeur(largeur);
+  const dsqR = (vessel==="Conteneur" ? TABLE_CONT : TABLE_AUT)[L];
+  if(dsqR == null){
+    log(`Largeur arrondie ${L} absente de la table squat.`);
+    setStatus("bad","Erreur table");
+    return;
+  }
+
+  const day1 = isoDate(d);
+  const day2 = isoDate(new Date(d.getTime()+86400000));
+
+  log(`Date: ${day1}`);
+  log(`Navire: ${vessel}`);
+  log(`Largeur: ${largeur} → ${L}`);
+  log(`Tirant: ${tirant}`);
+  log(`DsqR: ${dsqR}`);
+  log("------------------------------------------------------------");
+
+  let anyBad = false, anyWarn=false;
+
+  for(const [name,id] of Object.entries(STATIONS)){
+    const lim = tirant + dsqR - offset(name);
+
+    let data;
+    try{
+      // même fenêtre que ta version simplifiée (00:00 → jour+1 23:57)
+      data = await fetchIWLS(id, `${day1}T00:00:00Z`, `${day2}T23:57:00Z`);
+    }catch(e){
+      anyBad = true;
+      el("results").innerHTML += `
+        <tr>
+          <td><b>${name}</b></td>
+          <td class="mono">${lim.toFixed(3)}</td>
+          <td class="muted">—</td>
+          <td>${badge("bad","Erreur API")}</td>
+          <td class="muted">${e.message}</td>
+          <td class="muted">—</td>
+        </tr>`;
+      continue;
+    }
+
+    const c = (Array.isArray(data)?data:[])
+      .map(d=>({t:d.eventDate, v:+d.value}))
+      .filter(d=>d.t && Number.isFinite(d.v));
+
+    if(!c.length){
+      el("results").innerHTML += `
+        <tr>
+          <td><b>${name}</b></td>
+          <td class="mono">${lim.toFixed(3)}</td>
+          <td class="muted">—</td>
+          <td>${badge("warn","Aucune donnée")}</td>
+          <td class="muted">—</td>
+          <td class="muted">—</td>
+        </tr>`;
+      anyWarn=true;
+      continue;
+    }
+
+    const vals = c.map(d=>d.v);
+    const vmin = Math.min(...vals);
+    const vmax = Math.max(...vals);
+
+    // construire fenêtres d'interdiction "de → à"
+    let windows = [];
+    let start = null;
+    for(let i=1;i<c.length;i++){
+      if(c[i-1].v >= lim && c[i].v < lim) start = c[i-1];         // débute
+      if(c[i-1].v < lim && c[i].v >= lim && start){
+        windows.push({s:start.t, e:c[i].t});                      // termine
+        start = null;
+      }
+    }
+    if(start) windows.push({s:start.t, e:null});                  // ouverte
+
+    let stat = badge("ok","OK");
+    let interd = "—";
+
+    if(windows.length){
+      anyWarn = true;
+      stat = badge("warn","Restriction");
+      interd = windows.map(w=>{
+        const a = shortDT(w.s);
+        const b = w.e ? shortDT(w.e) : "fin fenêtre";
+        return `<div class="mono">• de ${a} à ${b}</div>`;
+      }).join("");
+    }
+
+    const tirantMax = (vmin + offset(name) - dsqR);
+
+    el("results").innerHTML += `
+      <tr>
+        <td><b>${name}</b></td>
+        <td class="mono">${lim.toFixed(3)}</td>
+        <td class="mono">${vmin.toFixed(3)} / ${vmax.toFixed(3)}</td>
+        <td>${stat}</td>
+        <td>${interd}</td>
+        <td class="mono">${tirantMax.toFixed(2)}</td>
+      </tr>`;
+  }
+
+  if(anyBad) setStatus("bad","Terminé (erreurs)");
+  else if(anyWarn) setStatus("warn","Terminé");
+  else setStatus("ok","Terminé");
+}
+
+/* ================= COURBE DE MARÉE (8H) ================= */
+
+let tideChart = null;
+
+function setTideStatus(text){
+  el("tideStatus").textContent = text;
+}
+
+function formatWindowToronto(fromUtc, toUtc){
+  // affichage simple
+  const f = new Intl.DateTimeFormat("fr-CA", {
+    timeZone:"America/Toronto",
+    hour:"2-digit", minute:"2-digit", day:"2-digit", month:"2-digit",
+    hour12:false
+  }).format(new Date(fromUtc));
+  const t = new Intl.DateTimeFormat("fr-CA", {
+    timeZone:"America/Toronto",
+    hour:"2-digit", minute:"2-digit", day:"2-digit", month:"2-digit",
+    hour12:false
+  }).format(new Date(toUtc));
+  return `${f} → ${t}`;
+}
+
+function toTorontoLabel(isoZ){
+  // HH:MM (jj/mm)
+  return shortDT(isoZ);
+}
+
+async function plotTide8h(){
+  const stationName = el("tideStation").value;
+  const stationId = STATIONS[stationName];
+  if(!stationId) return;
+
+  const btn = el("plotTide");
+  btn.disabled = true;
+  setTideStatus("Chargement…");
+
+  try{
+    const now = new Date();
+    const to = new Date(now.getTime() + 8*60*60*1000);
+
+    const {from, to:toIso} = toApiRange(now, to);
+
+    el("tideWindow").textContent = formatWindowToronto(from, toIso);
+
+    const data = await fetchIWLS(stationId, from, toIso);
+
+    const pts = (Array.isArray(data)?data:[])
+      .map(d => ({ t: d.eventDate, v: +d.value }))
+      .filter(d => d.t && Number.isFinite(d.v))
+      .sort((a,b) => new Date(a.t) - new Date(b.t));
+
+    if(!pts.length){
+      setTideStatus("Aucune donnée");
+      el("tideMin").textContent = "—";
+      el("tideMax").textContent = "—";
+      el("tideCount").textContent = "0";
+      if(tideChart){ tideChart.destroy(); tideChart = null; }
+      return;
+    }
+
+    const labels = pts.map(p => toTorontoLabel(p.t));
+    const values = pts.map(p => p.v);
+
+    const vmin = Math.min(...values);
+    const vmax = Math.max(...values);
+
+    el("tideMin").textContent = vmin.toFixed(3) + " m";
+    el("tideMax").textContent = vmax.toFixed(3) + " m";
+    el("tideCount").textContent = String(values.length);
+
+    const ctx = el("tideChart").getContext("2d");
+    if(tideChart) tideChart.destroy();
+
+    tideChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: `Niveau d'eau (m) – ${stationName}`,
+          data: values,
+          tension: 0.25,
+          pointRadius: 0,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: "#e7ecff" } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${ctx.parsed.y.toFixed(3)} m`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: "#8ea0c6", maxRotation: 0, autoSkip: true },
+            grid: { color: "rgba(255,255,255,.06)" }
+          },
+          y: {
+            ticks: {
+              color: "#8ea0c6",
+              callback: (v) => Number(v).toFixed(2)
+            },
+            grid: { color: "rgba(255,255,255,.06)" }
+          }
+        }
+      }
+    });
+
+    setTideStatus("OK");
+  } catch(e){
+    setTideStatus("Erreur");
+    log(`[Marée] ${e.message || e}`);
+  } finally{
+    btn.disabled = false;
+  }
+}
+
+/* ================= INIT ================= */
+
+document.addEventListener("DOMContentLoaded",()=>{
+  // date par défaut = aujourd'hui
+  const n = new Date();
+  el("date").value = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`;
+
+  // remplir la liste des stations pour la marée
+  const tideSel = el("tideStation");
+  tideSel.innerHTML = Object.keys(STATIONS)
+    .map(name => `<option value="${name}">${name}</option>`)
+    .join("");
+  tideSel.value = "Sorel"; // valeur par défaut (modifiable)
+
+  el("run").onclick = runRestrictions;
+  el("plotTide").onclick = plotTide8h;
+
+  el("clear").onclick = ()=>{
+    el("log").textContent="";
+    el("results").innerHTML=`<tr><td colspan="6" class="muted">Aucun calcul</td></tr>`;
+    setTideStatus("—");
+    el("tideWindow").textContent="—";
+    el("tideMin").textContent="—";
+    el("tideMax").textContent="—";
+    el("tideCount").textContent="—";
+    if(tideChart){ tideChart.destroy(); tideChart=null; }
+    setStatus("ok","Prêt");
+  };
+
+  log("Prêt. Calculer restrictions ou tracer la courbe de marée.");
+});
+</script>
+
+</body>
+</html>
