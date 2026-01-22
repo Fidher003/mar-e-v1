@@ -103,10 +103,10 @@ button:disabled{opacity:.55; cursor:not-allowed}
   background:rgba(0,0,0,.22);
   padding:10px;
   position: relative;
-  padding-top:56px; /* réserve ~1cm+ en haut */
+  padding-top:56px; /* réserve en haut */
 }
 canvas{ touch-action:none; }
-#tideChart{ height: 275px !important; } /* un peu plus gros */
+#tideChart{ height: 275px !important; }
 
 /* Tooltip pinné */
 .pinnedBox{
@@ -157,23 +157,29 @@ canvas{ touch-action:none; }
 .pinnedMuted{ color: var(--muted); }
 .pinnedWarn{ color: #ffd08a; font-weight: 900; }
 
-/* Observation box (haut-gauche) */
-.obsBox{
-  position:absolute;
-  top:10px;
-  left:10px;
-  background: rgba(0,0,0,.60);
-  border: 1px solid rgba(255,255,255,.16);
-  border-radius: 12px;
-  padding: 8px 10px;
-  box-shadow: 0 8px 30px rgba(0,0,0,.25);
+/* ===== Observation badge (à droite du bouton) ===== */
+.obsBadge{
   display:none;
-  max-width: 220px;
-  pointer-events:none;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:14px;
+  background:rgba(0,0,0,.18);
+  min-height: 40px;
 }
-.obsTitle{font-weight:900;font-size:12.5px;margin-bottom:4px}
-.obsRow{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text)}
+.obsTitle{font-weight:900;font-size:12px;color:var(--muted);line-height:1}
+.obsValueRow{display:flex;align-items:center;gap:8px}
 .obsDot{width:8px;height:8px;border-radius:50%;background:rgba(255,80,100,.95)}
+.obsValue{font-weight:900}
+.trend{
+  margin-left:6px;
+  font-weight:900;
+  opacity:.95;
+}
+.trend.up{ color: #34d399; }     /* vert */
+.trend.down{ color: #fb7185; }   /* rouge */
+.trend.flat{ color: #cbd5e1; }   /* gris */
 
 /* =================== SQUAT TABLE =================== */
 .squatTable{
@@ -183,7 +189,7 @@ canvas{ touch-action:none; }
 }
 .squatTable th,.squatTable td{
   text-align:center;
-  padding: 4px 6px;           /* ~30% plus étroit */
+  padding: 4px 6px;
   border-bottom: 1px solid rgba(255,255,255,.10);
   background-clip: padding-box;
 }
@@ -196,18 +202,17 @@ canvas{ touch-action:none; }
   font-weight: 900;
   z-index: 3;
 }
-/* Colonne Vitesse sticky + masque */
 .squatTable thead th:first-child{
   position: sticky;
   left:0;
   z-index: 30;
-  background: var(--stickBg);
+  background: rgba(0,0,0,.55);
 }
 .squatTable tbody th{
   position: sticky;
   left: 0;
   z-index: 25;
-  background: var(--stickBg);
+  background: rgba(0,0,0,.55);
   font-weight: 900;
   color: var(--text);
   font-size: 15px;
@@ -218,7 +223,6 @@ canvas{ touch-action:none; }
   font-weight: 800;
   min-width: 56px;
 }
-/* séparateurs verticaux */
 .squatTable thead th + th{ border-left: 1px solid var(--sep); }
 .squatTable tbody th + td{ border-left: 1px solid var(--sep); }
 .squatTable tbody td + td{ border-left: 1px solid var(--sep); }
@@ -310,27 +314,37 @@ canvas{ touch-action:none; }
         <span class="hdRight muted small" id="tideStatus">—</span>
       </div>
       <div class="bd grid">
-        <div class="row2">
+
+        <!-- ✅ bouton + badge observation sur la même ligne -->
+        <div class="row2" style="grid-template-columns: 1fr auto;">
           <div class="field">
             <label>Marégraphe</label>
             <select id="tideStation"></select>
           </div>
-          <div class="field">
-            <label>&nbsp;</label>
-            <button id="plotTide">Générer courbe marée</button>
+
+          <div class="field" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;justify-content:flex-end">
+            <div style="display:flex;gap:10px;align-items:center">
+              <button id="plotTide">Générer courbe marée</button>
+            </div>
+
+            <!-- ✅ observation déplacée ici -->
+            <div class="obsBadge" id="obsBadge" title="Observation wlo (15 minutes)">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <div class="obsTitle" id="obsBadgeTitle">Observation (—)</div>
+                <div class="obsValueRow">
+                  <span class="obsDot"></span>
+                  <span class="obsValue" id="obsBadgeValue">—</span>
+                  <span class="trend flat" id="obsTrend" aria-label="Tendance">—</span>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 
         <div class="chartWrap">
           <canvas id="tideChart"></canvas>
 
-          <!-- Observation (wlo) en petite boîte -->
-          <div class="obsBox" id="obsBox">
-            <div class="obsTitle" id="obsTitle">Observation</div>
-            <div class="obsRow"><span class="obsDot"></span><span id="obsValue">—</span></div>
-          </div>
-
-          <!-- boîte info drag -->
           <div class="pinnedBox" id="pinnedBox" aria-live="polite">
             <div class="pinnedTitle" id="pinnedTitle">Heure: —</div>
             <div class="pinnedLine"><span class="pinnedBullet"></span><span id="pinnedTide" class="pinnedMuted">Marée: —</span></div>
@@ -379,14 +393,10 @@ canvas{ touch-action:none; }
 </main>
 
 <script>
-/* ================= Stations (ordre demandé) =================
-   id:
-    - 24-hex IWLS => utilisé directement
-    - code station (ex: "03248") => résolu via /api/v1/stations?code=xxxx
-*/
+/* ================= Stations ================= */
 const STATION_OPTIONS = [
-  { name: "Vieux Québec",   id: "03248", kind: "water",     computeSpeed: true,  allowRestrictions: false }, // ✅ pas de restrictions
-  { name: "Pont de Québec", id: "03265", kind: "clearance", computeSpeed: false, allowRestrictions: false }, // ✅ pas de vitesse / pas de restrictions
+  { name: "Vieux Québec",   id: "03248", kind: "water",     computeSpeed: true,  allowRestrictions: false },
+  { name: "Pont de Québec", id: "03265", kind: "clearance", computeSpeed: false, allowRestrictions: false },
   { name: "Neuville",       id: "5cebf1df3d0f4a073c4bbb38", kind: "water", computeSpeed: true, allowRestrictions: true },
   { name: "Portneuf",       id: "5cebf1df3d0f4a073c4bbb56", kind: "water", computeSpeed: true, allowRestrictions: true },
   { name: "Deschaillons",   id: "5cebf1df3d0f4a073c4bbb76", kind: "water", computeSpeed: true, allowRestrictions: true },
@@ -400,10 +410,9 @@ const STATION_OPTIONS = [
   { name: "Frontenac",      id: "5cebf1e03d0f4a073c4bbdee", kind: "water", computeSpeed: true, allowRestrictions: true },
 ];
 
-const stationIdCache = new Map(); // code -> stationId (24hex)
+const stationIdCache = new Map();
 function isHexStationId(s){ return /^[a-f0-9]{24}$/i.test(String(s||"")); }
 
-/* Résoudre un code station (ex: 03248) en stationId IWLS */
 async function resolveStationId(idOrCode){
   const key = String(idOrCode);
   if (isHexStationId(key)) return key;
@@ -422,7 +431,7 @@ async function resolveStationId(idOrCode){
 
 /* ================= Profondeurs (Prof.) ================= */
 const PROF_10_7 = new Set(["Neuville","Portneuf"]);
-const PROF_10_6 = new Set(["Deschaillons"]); // ✅ 10.6
+const PROF_10_6 = new Set(["Deschaillons"]);
 const PROF_11_0 = new Set(["Batiscan"]);
 const DEFAULT_PROF = 11.3;
 function stationProf(st){
@@ -464,20 +473,19 @@ const AUTRES = [
   [74,0.84,0.93,1.01,1.10,1.29,1.50,1.73,2.00,2.30],
   [76,0.80,0.90,0.97,1.06,1.24,1.44,1.66,1.92,2.21],
 ];
-
 const PROFS = [10.6, 10.7, 11.0, 11.3];
 const SPEEDS = [7,8,9,10,11,12,13,14,15];
 const HIGHLIGHT = new Set([8,10,12,14]);
 
 /* ================= Helpers ================= */
 const el = id => document.getElementById(id);
+
 function setStatus(kind, text){
   const b = el("statusBadge");
   b.classList.remove("ok","warn","bad","neutral");
   b.classList.add(kind);
   el("statusText").textContent = text;
 }
-
 function formatDM(dt){
   const p = new Intl.DateTimeFormat("fr-CA",{timeZone:"America/Toronto",day:"2-digit",month:"2-digit"}).formatToParts(dt);
   const g = t => (p.find(x=>x.type===t)||{}).value;
@@ -538,7 +546,6 @@ function updateSquat(){
   const required = computeSquatRequired(shipKey, largeur, draft);
   squatCache = { shipKey, largeur, draft, required };
 
-  // ✅ afficher largeur arrondie (même logique que restrictions)
   const largeurArr = roundLargeurEvenAtLeast24(largeur);
   el("squatMeta").textContent =
     `${shipKey} • Largeur ${largeur.toFixed(2)} m (arr. ${largeurArr}) • Draft ${draft.toFixed(2)} m`;
@@ -593,7 +600,44 @@ async function fetchIWLSData(stationId, fromIsoZ, toIsoZ, timeSeriesCode){
   return await r.json();
 }
 
-/* ================= MARÉE 24H (bleu + observation wlo en boîte) ================= */
+/* ================= Observation badge + tendance ================= */
+function showObsBadge(timeLabel, value, trendKind){
+  const badge = el("obsBadge");
+  badge.style.display = "inline-flex";
+  el("obsBadgeTitle").textContent = `Observation (${timeLabel})`;
+  el("obsBadgeValue").textContent = `${value.toFixed(3)} m`;
+
+  const t = el("obsTrend");
+  t.classList.remove("up","down","flat");
+  if(trendKind === "up"){
+    t.classList.add("up"); t.textContent = "↗";
+  }else if(trendKind === "down"){
+    t.classList.add("down"); t.textContent = "↘";
+  }else{
+    t.classList.add("flat"); t.textContent = "—";
+  }
+}
+function hideObsBadge(){ el("obsBadge").style.display = "none"; }
+
+/* Calcule tendance sur ~10 min d'observations:
+   - compare moyenne 1ère moitié vs dernière moitié, seuil 1 cm
+*/
+function computeTrend(wloPts){
+  if(!Array.isArray(wloPts) || wloPts.length < 3) return "flat";
+  const vs = wloPts.map(p=>p.v).filter(Number.isFinite);
+  if(vs.length < 3) return "flat";
+  const mid = Math.floor(vs.length/2);
+  const avg = arr => arr.reduce((a,b)=>a+b,0)/Math.max(1,arr.length);
+  const a1 = avg(vs.slice(0, mid));
+  const a2 = avg(vs.slice(mid));
+  const diff = a2 - a1;
+  const TH = 0.01; // 1 cm
+  if(diff > TH) return "up";
+  if(diff < -TH) return "down";
+  return "flat";
+}
+
+/* ================= MARÉE 24H (bleu + observation badge) ================= */
 const TIDE_HOURS = 24;
 let tideChart = null;
 let tideTicks = [];
@@ -672,13 +716,6 @@ function setPinnedContent({title, tideLine, speedLine, showRestrictions}){
   el("pinnedRestrRow").style.display = showRestrictions ? "flex" : "none";
 }
 
-function showObsBox(title, valueStr){
-  el("obsTitle").textContent = title;
-  el("obsValue").textContent = valueStr;
-  el("obsBox").style.display = "block";
-}
-function hideObsBox(){ el("obsBox").style.display = "none"; }
-
 function bindPinnedHover(canvas, chart, stationCfg){
   const stationName = stationCfg.name;
   const allowSpeed = !!stationCfg.computeSpeed;
@@ -690,10 +727,8 @@ function bindPinnedHover(canvas, chart, stationCfg){
       chart.setActiveElements(els);
       chart.update("none");
 
-      const active = chart.getActiveElements();
-      const idx = active?.[0]?.index;
+      const idx = chart.getActiveElements()?.[0]?.index;
 
-      // Dataset 0 = courbe principale (bleu)
       const ds0 = chart.data.datasets?.[0]?.data || [];
       const pt = ds0[idx];
       if(pt && Number.isFinite(pt.x) && Number.isFinite(pt.y)){
@@ -769,7 +804,7 @@ async function plotTide24h(){
   btn.disabled = true;
   setTideStatus("Chargement…");
   hidePinnedBox();
-  hideObsBox();
+  hideObsBadge();
   setStatus("neutral","Chargement marée…");
 
   try{
@@ -779,9 +814,9 @@ async function plotTide24h(){
     const to  = new Date(now.getTime() + TIDE_HOURS*60*60*1000);
     const {from, to:toIso} = toApiRange(now, to);
 
-    // Observation wlo sur 15 minutes précédentes (pour la boîte)
+    // observations wlo sur 10 minutes (tendance) + on va afficher la dernière
     const obsTo = new Date(now.getTime());
-    const obsFrom = new Date(now.getTime() - 15*60*1000);
+    const obsFrom = new Date(now.getTime() - 10*60*1000);
     const {from:obsFromIso, to:obsToIso} = toApiRange(obsFrom, obsTo);
 
     tideTicks = build2hTicks(now.getTime(), TIDE_HOURS);
@@ -809,7 +844,7 @@ async function plotTide24h(){
 
     const series = pts.map(p => ({ x: new Date(p.t).getTime(), y: p.v }));
 
-    // Observation: dernier point wlo s'il existe
+    // Observation badge (dernière wlo + tendance)
     const wloPts = wloArr
       .map(d => ({ t: d.eventDate, v: +d.value }))
       .filter(d => d.t && Number.isFinite(d.v))
@@ -817,10 +852,10 @@ async function plotTide24h(){
     if(wloPts.length){
       const lastObs = wloPts[wloPts.length-1];
       const dtObs = new Date(lastObs.t);
-      showObsBox(`Observation (${formatHM(dtObs)})`, `${lastObs.v.toFixed(3)} m`);
+      const trend = computeTrend(wloPts);
+      showObsBadge(formatHM(dtObs), lastObs.v, trend);
     }else{
-      // on n'affiche rien si pas d'observation
-      hideObsBox();
+      hideObsBadge();
     }
 
     const xMin = tideTicks[0];
@@ -854,7 +889,7 @@ async function plotTide24h(){
             tension: 0.25,
             pointRadius: 0,
             borderWidth: 2,
-            borderColor: "rgba(106,169,255,1)" /* ✅ force le bleu */
+            borderColor: "rgba(106,169,255,1)"
           }
         ]
       },
@@ -897,7 +932,7 @@ async function plotTide24h(){
 
     bindPinnedHover(canvas, tideChart, stationCfg);
 
-    // info box initiale = dernier point (dataset 0)
+    // info box initiale = dernier point
     const last = series[series.length-1];
     const dt = new Date(last.x);
 
@@ -1048,24 +1083,12 @@ async function runRestrictions(){
           .map(d => ({ eventDate: d.eventDate, value: +d.value }))
           .sort((a,b) => new Date(a.eventDate) - new Date(b.eventDate));
       }catch(e){
-        rows.push({
-          station:s.name, prof, limit,
-          statut:`Erreur API`,
-          interdits:`—`,
-          tirantMax:`—`,
-          cls:"restRowBad"
-        });
+        rows.push({ station:s.name, prof, limit, statut:`Erreur API`, interdits:`—`, tirantMax:`—`, cls:"restRowBad" });
         continue;
       }
 
       if(!data.length){
-        rows.push({
-          station:s.name, prof, limit,
-          statut:`Aucune donnée`,
-          interdits:`—`,
-          tirantMax:`—`,
-          cls:""
-        });
+        rows.push({ station:s.name, prof, limit, statut:`Aucune donnée`, interdits:`—`, tirantMax:`—`, cls:"" });
         continue;
       }
 
@@ -1075,13 +1098,7 @@ async function runRestrictions(){
 
       if(vmax < limit){
         const tirantMax = vmax + prof - dsqR;
-        rows.push({
-          station:s.name, prof, limit,
-          statut:`Niveau insuffisant`,
-          interdits:`—`,
-          tirantMax:`${tirantMax.toFixed(2)} m`,
-          cls:"restRowBad"
-        });
+        rows.push({ station:s.name, prof, limit, statut:`Niveau insuffisant`, interdits:`—`, tirantMax:`${tirantMax.toFixed(2)} m`, cls:"restRowBad" });
         continue;
       }
 
@@ -1090,13 +1107,7 @@ async function runRestrictions(){
       if(!intervals.length){
         const tirantMax = vmin + prof - dsqR;
         const near = (vmin >= limit) && (vmin <= limit + 0.1);
-        rows.push({
-          station:s.name, prof, limit,
-          statut: near ? `OK (proche)` : `OK`,
-          interdits:`—`,
-          tirantMax:`${tirantMax.toFixed(2)} m`,
-          cls: near ? "restRowWarn" : ""
-        });
+        rows.push({ station:s.name, prof, limit, statut: near ? `OK (proche)` : `OK`, interdits:`—`, tirantMax:`${tirantMax.toFixed(2)} m`, cls: near ? "restRowWarn" : "" });
         continue;
       }
 
@@ -1109,13 +1120,7 @@ async function runRestrictions(){
 
       const tirantMax = vmin + prof - dsqR;
 
-      rows.push({
-        station:s.name, prof, limit,
-        statut:`Restrictions`,
-        interdits:list,
-        tirantMax:`${tirantMax.toFixed(2)} m`,
-        cls:"restRowBad"
-      });
+      rows.push({ station:s.name, prof, limit, statut:`Restrictions`, interdits:list, tirantMax:`${tirantMax.toFixed(2)} m`, cls:"restRowBad" });
     }
 
     tbody.innerHTML = rows.map(r => `
@@ -1159,7 +1164,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     el("tideStatus").textContent="—";
     if(tideChart){ tideChart.destroy(); tideChart=null; }
     hidePinnedBox();
-    hideObsBox();
+    hideObsBadge();
     el("restrMeta").textContent="—";
     el("restrBody").innerHTML = `<tr><td colspan="6" class="muted">Aucun calcul</td></tr>`;
     updateSquat();
