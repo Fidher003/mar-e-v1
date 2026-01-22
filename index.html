@@ -15,9 +15,10 @@
   --mono: ui-monospace, Menlo, Consolas, monospace;
 
   --sep: rgba(255,255,255,.10);
-  --stickBg: rgba(0,0,0,.55);
   --rowHL: rgba(255,255,255,.06);
 }
+
+*{ box-sizing:border-box; } /* ✅ IMPORTANT: empêche le débordement (mobile) */
 
 body{
   margin:0; font-family:system-ui,Segoe UI,Arial;
@@ -70,6 +71,7 @@ button{
   padding:10px 14px;border-radius:14px;
   background:var(--accent);border:0;font-weight:900;cursor:pointer;
   color:#081022;
+  max-width:100%;              /* ✅ ne dépasse jamais */
 }
 button.secondary{
   background:transparent;color:var(--text);
@@ -103,12 +105,11 @@ button:disabled{opacity:.55; cursor:not-allowed}
   background:rgba(0,0,0,.22);
   padding:10px;
   position: relative;
-  padding-top:56px; /* réserve en haut */
+  padding-top:56px;
 }
 canvas{ touch-action:none; }
 #tideChart{ height: 275px !important; }
 
-/* Tooltip pinné */
 .pinnedBox{
   position:absolute;
   top:10px;
@@ -167,6 +168,8 @@ canvas{ touch-action:none; }
   border-radius:14px;
   background:rgba(0,0,0,.18);
   min-height: 40px;
+  width:100%;                  /* ✅ sûr en mobile */
+  max-width:100%;
 }
 .obsTitle{font-weight:900;font-size:12px;color:var(--muted);line-height:1}
 .obsValueRow{display:flex;align-items:center;gap:8px}
@@ -177,12 +180,13 @@ canvas{ touch-action:none; }
 .trend.down{ color: #fb7185; }
 .trend.flat{ color: #cbd5e1; }
 
-/* ✅ MOBILE: faire apparaître le bouton + observation en dessous (sinon caché) */
+/* ✅ Controls marée: mobile-friendly + pas de débordement */
 .tideControls{
   display:grid;
   grid-template-columns: 1fr auto;
   gap: 12px;
   align-items:end;
+  min-width: 0;
 }
 .tideRight{
   display:flex;
@@ -190,23 +194,34 @@ canvas{ touch-action:none; }
   align-items:center;
   justify-content:flex-end;
   flex-wrap:wrap;
+  min-width: 0;
+}
+#plotTide{
+  white-space: nowrap;          /* ✅ pas de retour ligne étrange */
+  overflow: hidden;             /* ✅ évite le dépassement */
+  text-overflow: ellipsis;
 }
 @media(max-width:520px){
   .tideControls{ grid-template-columns: 1fr; }
-  .tideRight{ justify-content:flex-start; }
-  #plotTide{ width:100%; }
-  .obsBadge{ width:100%; }
+  .tideRight{
+    justify-content:flex-start;
+    width:100%;
+  }
+  #plotTide{
+    width:100%;
+    display:block;
+  }
 }
 
 /* =================== SQUAT TABLE =================== */
 .squatTable{
   border-collapse: separate;
   border-spacing: 0;
-  min-width: 520px;
+  min-width: 480px;
 }
 .squatTable th,.squatTable td{
   text-align:center;
-  padding: 3px 4px;          /* ✅ encore plus étroit */
+  padding: 2px 3px;
   border-bottom: 1px solid rgba(255,255,255,.10);
   background-clip: padding-box;
 }
@@ -215,7 +230,7 @@ canvas{ touch-action:none; }
   top:0;
   background:rgba(0,0,0,.35);
   backdrop-filter: blur(8px);
-  font-size: 13px;           /* ✅ légèrement plus compact */
+  font-size: 13px;
   font-weight: 900;
   z-index: 3;
 }
@@ -238,7 +253,7 @@ canvas{ touch-action:none; }
 .squatTable tbody td{
   font-size: 14px;
   font-weight: 800;
-  min-width: 44px;           /* ✅ colonnes plus étroites */
+  min-width: 38px;              /* ✅ encore plus étroit */
 }
 .squatTable thead th + th{ border-left: 1px solid var(--sep); }
 .squatTable tbody th + td{ border-left: 1px solid var(--sep); }
@@ -332,7 +347,6 @@ canvas{ touch-action:none; }
       </div>
       <div class="bd grid">
 
-        <!-- ✅ controls responsives -->
         <div class="tideControls">
           <div class="field">
             <label>Marégraphe</label>
@@ -632,7 +646,6 @@ function showObsBadge(timeLabel, value, trendKind){
 }
 function hideObsBadge(){ el("obsBadge").style.display = "none"; }
 
-/* compare moyenne 1ère moitié vs dernière moitié, seuil 1 cm */
 function computeTrend(wloPts){
   if(!Array.isArray(wloPts) || wloPts.length < 3) return "flat";
   const vs = wloPts.map(p=>p.v).filter(Number.isFinite);
@@ -888,49 +901,20 @@ async function plotTide24h(){
     tideChart = new Chart(ctx, {
       type: "line",
       plugins: [crosshairPlugin, fixedXTicksPlugin, dateLabelPlugin],
-      data: {
-        datasets: [
-          {
-            label: mainLabel,
-            data: series,
-            parsing: false,
-            tension: 0.25,
-            pointRadius: 0,
-            borderWidth: 2,
-            borderColor: "rgba(106,169,255,1)"
-          }
-        ]
-      },
+      data: { datasets: [{ label: mainLabel, data: series, parsing:false, tension:0.25, pointRadius:0, borderWidth:2, borderColor:"rgba(106,169,255,1)"}] },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: { padding: { left: 0, right: 6, top: 0, bottom: 0 } },
-        interaction: { mode:"index", intersect:false, axis:"x" },
-        plugins: { legend: { labels: { color: "#e7ecff" } }, tooltip: { enabled: false } },
-        elements: { point: { radius:0, hoverRadius:4, hitRadius:12 } },
-        scales: {
-          x: {
-            type: "linear",
-            min: xMin,
-            max: xMax,
-            offset: false,
-            grid: { color:"rgba(255,255,255,.06)" },
-            ticks: {
-              color:"#8ea0c6",
-              callback: (value) => formatHM(new Date(Number(value)))
-            }
-          },
-          y: {
-            position: "left",
-            min: yMinAxis,
-            max: yMaxAxisPadded,
-            grid: { color:"rgba(255,255,255,.06)" },
-            ticks: {
-              color:"#8ea0c6",
-              stepSize: (yMinAxis < 0) ? 0.5 : 1,
-              callback:(v)=>Number(v).toFixed(0)
-            }
-          }
+        responsive:true, maintainAspectRatio:false,
+        layout:{ padding:{ left:0, right:6, top:0, bottom:0 } },
+        interaction:{ mode:"index", intersect:false, axis:"x" },
+        plugins:{ legend:{ labels:{ color:"#e7ecff"} }, tooltip:{ enabled:false } },
+        elements:{ point:{ radius:0, hoverRadius:4, hitRadius:12 } },
+        scales:{
+          x:{ type:"linear", min:xMin, max:xMax, offset:false,
+              grid:{ color:"rgba(255,255,255,.06)" },
+              ticks:{ color:"#8ea0c6", callback:(value)=>formatHM(new Date(Number(value))) } },
+          y:{ position:"left", min:yMinAxis, max:yMaxAxisPadded,
+              grid:{ color:"rgba(255,255,255,.06)" },
+              ticks:{ color:"#8ea0c6", stepSize:(yMinAxis < 0) ? 0.5 : 1, callback:(v)=>Number(v).toFixed(0) } }
         }
       }
     });
@@ -951,12 +935,7 @@ async function plotTide24h(){
       showRestrictions = (!info || info.speed == null || info.speed < 7);
     }
 
-    setPinnedContent({
-      title:`Heure: ${formatHM(dt)} (${formatDM(dt)})`,
-      tideLine,
-      speedLine,
-      showRestrictions
-    });
+    setPinnedContent({ title:`Heure: ${formatHM(dt)} (${formatDM(dt)})`, tideLine, speedLine, showRestrictions });
     showPinnedBox();
 
     tideChart.setActiveElements([{datasetIndex:0, index: series.length-1}]);
@@ -973,181 +952,6 @@ async function plotTide24h(){
   }
 }
 
-/* ================= RESTRICTIONS ================= */
-function computeIntervals(data, limit){
-  const intervals = [];
-  if(!Array.isArray(data) || data.length < 2) return intervals;
-
-  let prev = data[0];
-  let openStart = null;
-
-  for(let i=1;i<data.length;i++){
-    const cur = data[i];
-    const pv = +prev.value, cv = +cur.value;
-    if(!Number.isFinite(pv) || !Number.isFinite(cv)){ prev = cur; continue; }
-    if(cv === pv){ prev = cur; continue; }
-
-    if((cv - pv < 0) && (pv >= limit) && (cv < limit)){
-      openStart = new Date(prev.eventDate);
-    }
-    if((cv - pv > 0) && (pv < limit) && (cv >= limit)){
-      if(openStart){
-        intervals.push({ start: openStart, end: new Date(cur.eventDate) });
-        openStart = null;
-      }
-    }
-    prev = cur;
-  }
-  if(openStart) intervals.push({ start: openStart, end: null });
-  return intervals;
-}
-
-function parseDateLocalYYYYMMDD(s){
-  const [y,m,d] = String(s).split("-").map(Number);
-  return new Date(y, (m||1)-1, d||1, 0,0,0,0);
-}
-
-function computeRestrictionWindow(dateStr){
-  const sel = parseDateLocalYYYYMMDD(dateStr);
-  const now = new Date();
-
-  const isSameDay =
-    sel.getFullYear()===now.getFullYear() &&
-    sel.getMonth()===now.getMonth() &&
-    sel.getDate()===now.getDate();
-
-  let fromLocal;
-  if(isSameDay){
-    fromLocal = new Date(now);
-    const mins = fromLocal.getMinutes();
-    fromLocal.setMinutes(Math.floor(mins/3)*3, 0, 0);
-  }else{
-    fromLocal = new Date(sel);
-  }
-
-  const toLocal = new Date(sel);
-  toLocal.setDate(toLocal.getDate()+1);
-  toLocal.setHours(23,57,0,0);
-
-  return { fromLocal, toLocal };
-}
-
-async function runRestrictions(){
-  const btn = el("runRestrictions");
-  btn.disabled = true;
-  setStatus("neutral","Calcul restrictions…");
-
-  const { vessel, largeur, draft, dateStr } = getInputsShared();
-  const tbody = el("restrBody");
-  tbody.innerHTML = `<tr><td colspan="6" class="muted">Calcul en cours…</td></tr>`;
-
-  if(!dateStr){
-    tbody.innerHTML = `<tr><td colspan="6" class="muted">Veuillez choisir une date.</td></tr>`;
-    setStatus("warn","Date manquante");
-    btn.disabled = false;
-    return;
-  }
-  if(!Number.isFinite(largeur) || !Number.isFinite(draft)){
-    tbody.innerHTML = `<tr><td colspan="6" class="muted">Entrées invalides (largeur/tirant).</td></tr>`;
-    setStatus("warn","Entrées invalides");
-    btn.disabled = false;
-    return;
-  }
-
-  try{
-    const lr = roundLargeurEvenAtLeast24(largeur);
-    const dsqR = (vessel === "Conteneur") ? TABLE_CONT_DsqR[lr] : TABLE_AUT_DsqR[lr];
-    if(!Number.isFinite(dsqR)) throw new Error(`Largeur ${lr} non disponible (table dsqR).`);
-
-    const { fromLocal, toLocal } = computeRestrictionWindow(dateStr);
-    const { from, to } = toApiRange(fromLocal, toLocal);
-
-    el("restrMeta").textContent =
-      `Fenêtre: ${formatHM(fromLocal)} ${formatDM(fromLocal)} → ${formatHM(toLocal)} ${formatDM(toLocal)} • Largeur arr. ${lr} • DsqR ${dsqR.toFixed(2)}`;
-
-    const stations = STATION_OPTIONS.filter(s => s.allowRestrictions);
-
-    const resolved = await Promise.all(stations.map(async s => ({
-      ...s,
-      stationId: await resolveStationId(s.id),
-      prof: stationProf(s.name)
-    })));
-
-    const rows = [];
-
-    for(const s of resolved){
-      const prof = s.prof;
-      const limit = draft + dsqR - prof;
-
-      let data;
-      try{
-        const raw = await fetchIWLSData(s.stationId, from, to, "wlf-spine");
-        data = (Array.isArray(raw) ? raw : [])
-          .filter(d => d && d.eventDate && Number.isFinite(+d.value))
-          .map(d => ({ eventDate: d.eventDate, value: +d.value }))
-          .sort((a,b) => new Date(a.eventDate) - new Date(b.eventDate));
-      }catch(e){
-        rows.push({ station:s.name, prof, limit, statut:`Erreur API`, interdits:`—`, tirantMax:`—`, cls:"restRowBad" });
-        continue;
-      }
-
-      if(!data.length){
-        rows.push({ station:s.name, prof, limit, statut:`Aucune donnée`, interdits:`—`, tirantMax:`—`, cls:"" });
-        continue;
-      }
-
-      const values = data.map(d=>d.value);
-      const vmin = Math.min(...values);
-      const vmax = Math.max(...values);
-
-      if(vmax < limit){
-        const tirantMax = vmax + prof - dsqR;
-        rows.push({ station:s.name, prof, limit, statut:`Niveau insuffisant`, interdits:`—`, tirantMax:`${tirantMax.toFixed(2)} m`, cls:"restRowBad" });
-        continue;
-      }
-
-      const intervals = computeIntervals(data, limit);
-
-      if(!intervals.length){
-        const tirantMax = vmin + prof - dsqR;
-        const near = (vmin >= limit) && (vmin <= limit + 0.1);
-        rows.push({ station:s.name, prof, limit, statut: near ? `OK (proche)` : `OK`, interdits:`—`, tirantMax:`${tirantMax.toFixed(2)} m`, cls: near ? "restRowWarn" : "" });
-        continue;
-      }
-
-      const list = intervals.map(it => {
-        const a = it.start;
-        const b = it.end;
-        if(b) return fmtRange(a,b);
-        return `de: ${formatHM(a)} ${formatDM(a)} à: —`;
-      }).join("<br>");
-
-      const tirantMax = vmin + prof - dsqR;
-
-      rows.push({ station:s.name, prof, limit, statut:`Restrictions`, interdits:list, tirantMax:`${tirantMax.toFixed(2)} m`, cls:"restRowBad" });
-    }
-
-    tbody.innerHTML = rows.map(r => `
-      <tr class="${r.cls||""}">
-        <td><strong>${r.station}</strong></td>
-        <td class="mono">${Number(r.prof).toFixed(1)}</td>
-        <td class="mono">${Number(r.limit).toFixed(3)}</td>
-        <td>${r.statut}</td>
-        <td class="mono">${r.interdits}</td>
-        <td class="mono">${r.tirantMax}</td>
-      </tr>
-    `).join("");
-
-    setStatus("ok","OK");
-  }catch(e){
-    console.error(e);
-    tbody.innerHTML = `<tr><td colspan="6" class="muted">Erreur: ${String(e.message||e)}</td></tr>`;
-    setStatus("bad","Erreur");
-  }finally{
-    btn.disabled = false;
-  }
-}
-
 /* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded",()=>{
   const n = new Date();
@@ -1158,7 +962,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   tideSel.value = "Neuville";
 
   el("plotTide").onclick = plotTide24h;
-  el("runRestrictions").onclick = runRestrictions;
 
   el("vessel").addEventListener("change", updateSquat);
   el("largeur").addEventListener("input", updateSquat);
@@ -1169,8 +972,6 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(tideChart){ tideChart.destroy(); tideChart=null; }
     hidePinnedBox();
     hideObsBadge();
-    el("restrMeta").textContent="—";
-    el("restrBody").innerHTML = `<tr><td colspan="6" class="muted">Aucun calcul</td></tr>`;
     updateSquat();
     setStatus("neutral","Prêt");
   };
