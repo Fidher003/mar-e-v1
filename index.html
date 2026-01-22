@@ -157,7 +157,7 @@ canvas{ touch-action:none; }
 .pinnedMuted{ color: var(--muted); }
 .pinnedWarn{ color: #ffd08a; font-weight: 900; }
 
-/* ===== Observation badge (à droite du bouton) ===== */
+/* ===== Observation badge ===== */
 .obsBadge{
   display:none;
   align-items:center;
@@ -172,14 +172,31 @@ canvas{ touch-action:none; }
 .obsValueRow{display:flex;align-items:center;gap:8px}
 .obsDot{width:8px;height:8px;border-radius:50%;background:rgba(255,80,100,.95)}
 .obsValue{font-weight:900}
-.trend{
-  margin-left:6px;
-  font-weight:900;
-  opacity:.95;
+.trend{margin-left:6px;font-weight:900;opacity:.95;}
+.trend.up{ color: #34d399; }
+.trend.down{ color: #fb7185; }
+.trend.flat{ color: #cbd5e1; }
+
+/* ✅ MOBILE: faire apparaître le bouton + observation en dessous (sinon caché) */
+.tideControls{
+  display:grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items:end;
 }
-.trend.up{ color: #34d399; }     /* vert */
-.trend.down{ color: #fb7185; }   /* rouge */
-.trend.flat{ color: #cbd5e1; }   /* gris */
+.tideRight{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+@media(max-width:520px){
+  .tideControls{ grid-template-columns: 1fr; }
+  .tideRight{ justify-content:flex-start; }
+  #plotTide{ width:100%; }
+  .obsBadge{ width:100%; }
+}
 
 /* =================== SQUAT TABLE =================== */
 .squatTable{
@@ -189,7 +206,7 @@ canvas{ touch-action:none; }
 }
 .squatTable th,.squatTable td{
   text-align:center;
-  padding: 4px 6px;
+  padding: 3px 4px;          /* ✅ encore plus étroit */
   border-bottom: 1px solid rgba(255,255,255,.10);
   background-clip: padding-box;
 }
@@ -198,7 +215,7 @@ canvas{ touch-action:none; }
   top:0;
   background:rgba(0,0,0,.35);
   backdrop-filter: blur(8px);
-  font-size: 14px;
+  font-size: 13px;           /* ✅ légèrement plus compact */
   font-weight: 900;
   z-index: 3;
 }
@@ -215,13 +232,13 @@ canvas{ touch-action:none; }
   background: rgba(0,0,0,.55);
   font-weight: 900;
   color: var(--text);
-  font-size: 15px;
+  font-size: 14px;
   box-shadow: 10px 0 12px rgba(0,0,0,.28);
 }
 .squatTable tbody td{
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
-  min-width: 56px;
+  min-width: 44px;           /* ✅ colonnes plus étroites */
 }
 .squatTable thead th + th{ border-left: 1px solid var(--sep); }
 .squatTable tbody th + td{ border-left: 1px solid var(--sep); }
@@ -315,20 +332,17 @@ canvas{ touch-action:none; }
       </div>
       <div class="bd grid">
 
-        <!-- ✅ bouton + badge observation sur la même ligne -->
-        <div class="row2" style="grid-template-columns: 1fr auto;">
+        <!-- ✅ controls responsives -->
+        <div class="tideControls">
           <div class="field">
             <label>Marégraphe</label>
             <select id="tideStation"></select>
           </div>
 
-          <div class="field" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;justify-content:flex-end">
-            <div style="display:flex;gap:10px;align-items:center">
-              <button id="plotTide">Générer courbe marée</button>
-            </div>
+          <div class="tideRight">
+            <button id="plotTide">Générer courbe marée</button>
 
-            <!-- ✅ observation déplacée ici -->
-            <div class="obsBadge" id="obsBadge" title="Observation wlo (15 minutes)">
+            <div class="obsBadge" id="obsBadge" title="Observation wlo (10 minutes)">
               <div style="display:flex;flex-direction:column;gap:4px">
                 <div class="obsTitle" id="obsBadgeTitle">Observation (—)</div>
                 <div class="obsValueRow">
@@ -338,7 +352,6 @@ canvas{ touch-action:none; }
                 </div>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -619,9 +632,7 @@ function showObsBadge(timeLabel, value, trendKind){
 }
 function hideObsBadge(){ el("obsBadge").style.display = "none"; }
 
-/* Calcule tendance sur ~10 min d'observations:
-   - compare moyenne 1ère moitié vs dernière moitié, seuil 1 cm
-*/
+/* compare moyenne 1ère moitié vs dernière moitié, seuil 1 cm */
 function computeTrend(wloPts){
   if(!Array.isArray(wloPts) || wloPts.length < 3) return "flat";
   const vs = wloPts.map(p=>p.v).filter(Number.isFinite);
@@ -631,13 +642,13 @@ function computeTrend(wloPts){
   const a1 = avg(vs.slice(0, mid));
   const a2 = avg(vs.slice(mid));
   const diff = a2 - a1;
-  const TH = 0.01; // 1 cm
+  const TH = 0.01;
   if(diff > TH) return "up";
   if(diff < -TH) return "down";
   return "flat";
 }
 
-/* ================= MARÉE 24H (bleu + observation badge) ================= */
+/* ================= MARÉE 24H ================= */
 const TIDE_HOURS = 24;
 let tideChart = null;
 let tideTicks = [];
@@ -728,7 +739,6 @@ function bindPinnedHover(canvas, chart, stationCfg){
       chart.update("none");
 
       const idx = chart.getActiveElements()?.[0]?.index;
-
       const ds0 = chart.data.datasets?.[0]?.data || [];
       const pt = ds0[idx];
       if(pt && Number.isFinite(pt.x) && Number.isFinite(pt.y)){
@@ -814,7 +824,6 @@ async function plotTide24h(){
     const to  = new Date(now.getTime() + TIDE_HOURS*60*60*1000);
     const {from, to:toIso} = toApiRange(now, to);
 
-    // observations wlo sur 10 minutes (tendance) + on va afficher la dernière
     const obsTo = new Date(now.getTime());
     const obsFrom = new Date(now.getTime() - 10*60*1000);
     const {from:obsFromIso, to:obsToIso} = toApiRange(obsFrom, obsTo);
@@ -844,7 +853,6 @@ async function plotTide24h(){
 
     const series = pts.map(p => ({ x: new Date(p.t).getTime(), y: p.v }));
 
-    // Observation badge (dernière wlo + tendance)
     const wloPts = wloArr
       .map(d => ({ t: d.eventDate, v: +d.value }))
       .filter(d => d.t && Number.isFinite(d.v))
@@ -898,10 +906,7 @@ async function plotTide24h(){
         maintainAspectRatio: false,
         layout: { padding: { left: 0, right: 6, top: 0, bottom: 0 } },
         interaction: { mode:"index", intersect:false, axis:"x" },
-        plugins: {
-          legend: { labels: { color: "#e7ecff" } },
-          tooltip: { enabled: false }
-        },
+        plugins: { legend: { labels: { color: "#e7ecff" } }, tooltip: { enabled: false } },
         elements: { point: { radius:0, hoverRadius:4, hitRadius:12 } },
         scales: {
           x: {
@@ -932,7 +937,6 @@ async function plotTide24h(){
 
     bindPinnedHover(canvas, tideChart, stationCfg);
 
-    // info box initiale = dernier point
     const last = series[series.length-1];
     const dt = new Date(last.x);
 
