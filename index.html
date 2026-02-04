@@ -205,15 +205,14 @@ canvas{ touch-action:none; }
   .tideRight{ justify-content:flex-start; width:100%; }
   #plotTide{ width:100%; display:block; }
   .obsBadge{ width:100%; }
-}
-  @media(max-width:520px){
+
+  /* ✅ Bouton réduit en mobile (hauteur/texte) */
   #plotTide{
     padding: 6px 10px;
     border-radius: 12px;
     font-size: 14px;
   }
 }
-
 
 /* =================== SQUAT TABLE =================== */
 .squatTable{
@@ -861,18 +860,13 @@ async function plotTide24h(){
       return;
     }
 
+    /* ✅ Pont de Québec: y = 53.1 - valeur API */
     const series = pts.map(p => {
-  const x = new Date(p.t).getTime();
-  const apiVal = p.v;
-
-  // ✅ Pont de Québec: afficher 53.1 - valeur API
-  const y = (stationCfg.name === "Pont de Québec")
-    ? (53.1 - apiVal)
-    : apiVal;
-
-  return { x, y };
-});
-
+      const x = new Date(p.t).getTime();
+      const apiVal = p.v;
+      const y = (stationCfg.name === "Pont de Québec") ? (53.1 - apiVal) : apiVal;
+      return { x, y };
+    });
 
     const wloPts = wloArr
       .map(d => ({ t: d.eventDate, v: +d.value }))
@@ -894,9 +888,11 @@ async function plotTide24h(){
     const yMinData = Math.min(...ys);
     const yMaxData = Math.max(...ys);
 
-    const yMinAxis = (yMinData < 0) ? -0.5 : 0;
-    const yMaxAxis = niceCeil(yMaxData, 1);
-    const yMaxAxisPadded = Math.max(yMaxAxis, yMinAxis + 2);
+    /* ✅ Axe Y spécial pour Pont de Québec: 45 à 55, pas de 1 m */
+    const isPont = (stationCfg.name === "Pont de Québec");
+    const yMinAxis = isPont ? 45 : ((yMinData < 0) ? -0.5 : 0);
+    const yMaxAxisPadded = isPont ? 55 : Math.max(niceCeil(yMaxData, 1), yMinAxis + 2);
+    const yStep = isPont ? 1 : ((yMinAxis < 0) ? 0.5 : 1);
 
     const canvas = el("tideChart");
     const ctx = canvas.getContext("2d");
@@ -922,7 +918,7 @@ async function plotTide24h(){
               ticks:{ color:"#8ea0c6", callback:(value)=>formatHM(new Date(Number(value))) } },
           y:{ position:"left", min:yMinAxis, max:yMaxAxisPadded,
               grid:{ color:"rgba(255,255,255,.06)" },
-              ticks:{ color:"#8ea0c6", stepSize:(yMinAxis < 0) ? 0.5 : 1, callback:(v)=>Number(v).toFixed(0) } }
+              ticks:{ color:"#8ea0c6", stepSize:yStep, callback:(v)=>Number(v).toFixed(0) } }
         }
       }
     });
@@ -1168,4 +1164,3 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
-
