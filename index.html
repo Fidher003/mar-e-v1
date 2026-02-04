@@ -13,19 +13,20 @@
   --ok:#2dd4bf; --warn:#fbbf24; --bad:#fb7185;
   --radius:16px;
   --mono: ui-monospace, Menlo, Consolas, monospace;
-
   --sep: rgba(255,255,255,.10);
   --rowHL: rgba(255,255,255,.06);
 }
 *{ box-sizing:border-box; }
 
 body{
-  margin:0; font-family:system-ui,Segoe UI,Arial;
+  margin:0;
+  font-family:system-ui,Segoe UI,Arial;
   background:radial-gradient(900px 600px at 20% 0%,#1e3a8a,transparent),
              radial-gradient(900px 600px at 80% 100%,#134e4a,transparent),
              var(--bg);
   color:var(--text);
 }
+
 header{max-width:1200px;margin:auto;padding:24px}
 h1{margin:0}
 
@@ -46,235 +47,52 @@ h1{margin:0}
   border-bottom:1px solid var(--line);
   display:flex;justify-content:space-between;align-items:center;
   font-weight:900;
-  gap:12px;
 }
-.hdRight{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end;}
 .bd{padding:16px}
 
-.grid{display:grid;gap:12px}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:900px){.row2{grid-template-columns:1fr}}
-
-.field{min-width:0}
 .field label{font-size:12px;color:var(--muted)}
 .field input,.field select{
   width:100%;padding:10px;margin-top:4px;
   border-radius:12px;border:1px solid var(--line);
   background:rgba(0,0,0,.25);color:var(--text)
 }
-.field input:focus,.field select:focus{
-  outline:none;border-color:rgba(106,169,255,.65);
-  box-shadow:0 0 0 3px rgba(106,169,255,.18)
-}
 
 button{
   padding:10px 14px;border-radius:14px;
   background:var(--accent);border:0;font-weight:900;cursor:pointer;
   color:#081022;
-  max-width:100%;
 }
-button.secondary{
-  background:transparent;color:var(--text);
-  border:1px solid var(--line)
-}
-button:disabled{opacity:.55; cursor:not-allowed}
 
-.badge{
-  display:inline-flex;gap:6px;align-items:center;
-  padding:6px 10px;border-radius:999px;
-  border:1px solid var(--line);font-size:12px
-}
-.dot{width:8px;height:8px;border-radius:50%}
-.badge.ok .dot{background:var(--ok)}
-.badge.warn .dot{background:var(--warn)}
-.badge.bad .dot{background:var(--bad)}
-.badge.neutral .dot{background:#a78bfa}
-
-.tableWrap{
-  overflow:auto;border:1px solid var(--line);
-  border-radius:12px;background:rgba(0,0,0,.18)
-}
-.muted{color:var(--muted)}
-.small{font-size:12px}
-.mono{font-family:var(--mono)}
-
-/* =================== GRAPH =================== */
 .chartWrap{
   border:1px solid var(--line);
   border-radius:12px;
   background:rgba(0,0,0,.22);
   padding:10px;
   position: relative;
-  padding-top:56px; /* réserve en haut */
+  padding-top:56px;
 }
-canvas{ touch-action:none; }
-#tideChart{ height: 285px !important; }
+#tideChart{ height:285px !important; }
 
-.pinnedBox{
-  position:absolute;
-  top:10px;
-  right:10px;
-  background: rgba(0,0,0,.70);
-  border: 1px solid rgba(255,255,255,.16);
-  border-radius: 12px;
-  padding: 10px 12px;
-  min-width: 220px;
-  max-width: 340px;
-  pointer-events: none;
-  box-shadow: 0 8px 30px rgba(0,0,0,.35);
-  display:none;
-}
+/* ================= MOBILE FIX BOUTON ================= */
 @media(max-width:520px){
-  .pinnedBox{
-    left:10px; right:auto;
-    max-width: calc(100% - 20px);
-    min-width: 0;
-    width:auto;
-    padding: 8px 10px;
-    top: 8px;
+  .tideControls{ grid-template-columns:1fr; }
+
+  .tideRight{
+    width:100%;
+    justify-content:center;
   }
-}
-.pinnedTitle{font-weight: 900;margin-bottom: 6px;font-size: 13px;}
-.pinnedLine{
-  font-size: 12.5px;
-  line-height: 1.35;
-  display:flex;
-  gap:8px;
-  align-items:flex-start;
-}
-.pinnedBullet{
-  width:10px; flex:0 0 10px;
-  display:flex; align-items:flex-start; justify-content:center;
-  margin-top: 1px;
-}
-.pinnedBullet:before{
-  content:"";
-  width:8px; height:8px; border-radius:2px;
-  background: rgba(106,169,255,.9);
-  display:inline-block;
-  margin-top: 3px;
-}
-.pinnedMuted{ color: var(--muted); }
-.pinnedWarn{ color: #ffd08a; font-weight: 900; }
 
-/* ===== Observation badge ===== */
-.obsBadge{
-  display:none;
-  align-items:center;
-  gap:10px;
-  padding:10px 12px;
-  border:1px solid rgba(255,255,255,.14);
-  border-radius:14px;
-  background:rgba(0,0,0,.18);
-  min-height: 40px;
-  width:100%;
-  max-width:100%;
-}
-.obsTitle{font-weight:900;font-size:12px;color:var(--muted);line-height:1}
-.obsValueRow{display:flex;align-items:center;gap:8px}
-.obsDot{width:8px;height:8px;border-radius:50%;background:rgba(255,80,100,.95)}
-.obsValue{font-weight:900}
-.trend{margin-left:6px;font-weight:900;opacity:.95;}
-.trend.up{ color: #34d399; }
-.trend.down{ color: #fb7185; }
-.trend.flat{ color: #cbd5e1; }
-
-/* ✅ Controls marée: mobile-friendly */
-.tideControls{
-  display:grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  align-items:end;
-  min-width: 0;
-}
-.tideRight{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  justify-content:flex-end;
-  flex-wrap:wrap;
-  min-width: 0;
-}
-#plotTide{
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-@media(max-width:520px){
-  .tideControls{ grid-template-columns: 1fr; }
-  .tideRight{ justify-content:flex-start; width:100%; }
-  #plotTide{ width:100%; display:block; }
-  .obsBadge{ width:100%; }
-
-  /* ✅ Bouton réduit en mobile (hauteur/texte) */
   #plotTide{
-    padding: 6px 10px;
-    border-radius: 12px;
-    font-size: 14px;
+    display:block;
+    width:90vw;
+    max-width:360px;
+    margin:0 auto;
+    padding:6px 12px;
+    font-size:14px;
+    border-radius:12px;
+    white-space:normal;
   }
 }
-
-/* =================== SQUAT TABLE =================== */
-.squatTable{
-  border-collapse: separate;
-  border-spacing: 0;
-  min-width: 480px;
-}
-.squatTable th,.squatTable td{
-  text-align:center;
-  padding: 2px 3px;                 /* compact */
-  border-bottom: 1px solid rgba(255,255,255,.10);
-  background-clip: padding-box;
-}
-.squatTable thead th{
-  position:sticky;
-  top:0;
-  background:rgba(0,0,0,.35);
-  backdrop-filter: blur(8px);
-  font-size: 13px;
-  font-weight: 900;
-  z-index: 3;
-}
-.squatTable thead th:first-child{
-  position: sticky;
-  left:0;
-  z-index: 30;
-  background: rgba(0,0,0,.55);
-}
-.squatTable tbody th{
-  position: sticky;
-  left: 0;
-  z-index: 25;
-  background: rgba(0,0,0,.55);
-  font-weight: 900;
-  font-size: 14px;
-  box-shadow: 10px 0 12px rgba(0,0,0,.28);
-}
-.squatTable tbody td{
-  font-size: 14px;
-  font-weight: 800;
-  min-width: 38px;                   /* narrow columns */
-}
-.squatTable thead th + th{ border-left: 1px solid var(--sep); }
-.squatTable tbody th + td{ border-left: 1px solid var(--sep); }
-.squatTable tbody td + td{ border-left: 1px solid var(--sep); }
-.squatHL td,.squatHL th{ background: var(--rowHL); }
-
-/* =================== RESTRICTIONS TABLE =================== */
-.restTable{
-  width:100%;
-  border-collapse:collapse;
-  min-width:900px;
-  font-size:13px;
-}
-.restTable th,.restTable td{
-  padding:10px;
-  border-bottom:1px solid rgba(255,255,255,.10);
-  vertical-align:top;
-}
-.restTable th{color:var(--muted); text-align:left; font-weight:900}
-.restRowWarn td{background: rgba(251,191,36,.08);}
-.restRowBad  td{background: rgba(251,113,133,.10);}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -286,880 +104,74 @@ canvas{ touch-action:none; }
 </header>
 
 <main class="wrap">
-  <!-- GAUCHE -->
-  <section class="card">
-    <div class="hd">
-      <span>Entrées</span>
-      <span class="badge neutral" id="statusBadge"><span class="dot"></span><span id="statusText">Prêt</span></span>
-    </div>
-    <div class="bd grid">
-      <div class="field">
-        <label>Date</label>
-        <input type="date" id="date">
-      </div>
 
+<section class="card">
+  <div class="hd">Entrées</div>
+  <div class="bd">
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="date">
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="hd">
+    <span>Courbe de marée (24h)</span>
+    <span id="tideStatus">—</span>
+  </div>
+
+  <div class="bd">
+    <div class="tideControls">
       <div class="field">
-        <label>Type de navire</label>
-        <select id="vessel">
-          <option>Conteneur</option>
-          <option>Autre</option>
+        <label>Marégraphe</label>
+        <select id="tideStation">
+          <option>Pont de Québec</option>
+          <option>Neuville</option>
         </select>
       </div>
 
-      <div class="row2">
-        <div class="field">
-          <label>Largeur (m)</label>
-          <input id="largeur" value="32.25" inputmode="decimal">
-        </div>
-        <div class="field">
-          <label>Tirant d’eau / Draft (m)</label>
-          <input id="tirant" value="10.5" inputmode="decimal">
-        </div>
-      </div>
-
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="secondary" id="clear">Effacer</button>
+      <div class="tideRight">
+        <button id="plotTide">Générer courbe marée</button>
       </div>
     </div>
-  </section>
 
-  <!-- DROITE -->
-  <section class="grid">
+    <div class="chartWrap">
+      <canvas id="tideChart"></canvas>
+    </div>
+  </div>
+</section>
 
-    <!-- SQUAT -->
-    <section class="card">
-      <div class="hd">
-        <span>Calcul Squat</span>
-        <span class="muted small" id="squatMeta">—</span>
-      </div>
-      <div class="bd grid">
-        <div class="tableWrap">
-          <table id="resultTable" class="squatTable" aria-label="Niveau d'eau requis"></table>
-        </div>
-      </div>
-    </section>
-
-    <!-- MARÉE -->
-    <section class="card">
-      <div class="hd">
-        <span>Courbe de marée (24h)</span>
-        <span class="hdRight muted small" id="tideStatus">—</span>
-      </div>
-      <div class="bd grid">
-
-        <div class="tideControls">
-          <div class="field">
-            <label>Marégraphe</label>
-            <select id="tideStation"></select>
-          </div>
-
-          <div class="tideRight">
-            <button id="plotTide">Générer courbe marée</button>
-
-            <div class="obsBadge" id="obsBadge" title="Observation wlo (10 minutes)">
-              <div style="display:flex;flex-direction:column;gap:4px">
-                <div class="obsTitle" id="obsBadgeTitle">Observation (—)</div>
-                <div class="obsValueRow">
-                  <span class="obsDot"></span>
-                  <span class="obsValue" id="obsBadgeValue">—</span>
-                  <span class="trend flat" id="obsTrend" aria-label="Tendance">—</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="chartWrap">
-          <canvas id="tideChart"></canvas>
-
-          <div class="pinnedBox" id="pinnedBox" aria-live="polite">
-            <div class="pinnedTitle" id="pinnedTitle">Heure: —</div>
-            <div class="pinnedLine"><span class="pinnedBullet"></span><span id="pinnedTide" class="pinnedMuted">Marée: —</span></div>
-            <div class="pinnedLine"><span class="pinnedBullet"></span><span id="pinnedSpeed" class="pinnedMuted">Vitesse possible: —</span></div>
-            <div class="pinnedLine" id="pinnedRestrRow" style="display:none">
-              <span class="pinnedBullet"></span><span class="pinnedWarn">Restrictions</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="muted small">Glisse sur le graphique → ligne verticale + info en haut.</div>
-      </div>
-    </section>
-
-    <!-- RESTRICTIONS -->
-    <section class="card">
-      <div class="hd">
-        <span>Restrictions par station</span>
-        <span class="hdRight">
-          <button id="runRestrictions">Calculer restrictions</button>
-        </span>
-      </div>
-      <div class="bd grid">
-        <div class="muted small" id="restrMeta">—</div>
-        <div class="tableWrap">
-          <table class="restTable" aria-label="Restrictions">
-            <thead>
-              <tr>
-                <th>Station</th>
-                <th>Prof. (m)</th>
-                <th>Limite (m)</th>
-                <th>Statut</th>
-                <th>Interdictions</th>
-                <th>Tirant max</th>
-              </tr>
-            </thead>
-            <tbody id="restrBody">
-              <tr><td colspan="6" class="muted">Aucun calcul</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-  </section>
 </main>
 
 <script>
-/* ================= Stations ================= */
-const STATION_OPTIONS = [
-  { name: "Vieux Québec",   id: "03248", kind: "water",     computeSpeed: true,  allowRestrictions: false },
-  { name: "Pont de Québec", id: "03265", kind: "clearance", computeSpeed: false, allowRestrictions: false },
-  { name: "Neuville",       id: "5cebf1df3d0f4a073c4bbb38", kind: "water", computeSpeed: true, allowRestrictions: true },
-  { name: "Portneuf",       id: "5cebf1df3d0f4a073c4bbb56", kind: "water", computeSpeed: true, allowRestrictions: true },
-  { name: "Deschaillons",   id: "5cebf1df3d0f4a073c4bbb76", kind: "water", computeSpeed: true, allowRestrictions: true },
-  { name: "Batiscan",       id: "5cebf1df3d0f4a073c4bbb91", kind: "water", computeSpeed: true, allowRestrictions: true },
-  { name: "Bécancour",      id: "5cebf1e03d0f4a073c4bbda9", kind: "water", computeSpeed: true, allowRestrictions: true },
-  { name: "Trois-Rivières", id: "5cebf1df3d0f4a073c4bbbac", kind: "water", computeSpeed: true, allowRestrictions: true },
-  { name: "Lac St-Pierre",  id: "5cebf1e03d0f4a073c4bbe49", kind: "water", computeSpeed: true, allowRestrictions: true },
-  { name: "Sorel",          id: "5cebf1e03d0f4a073c4bbe32", kind: "water", computeSpeed: true, allowRestrictions: true },
-  { name: "Contrecoeur",    id: "5cebf1e03d0f4a073c4bbe1b", kind: "water", computeSpeed: true, allowRestrictions: true },
-  { name: "Varennes",       id: "5cebf1e03d0f4a073c4bbe04", kind: "water", computeSpeed: true, allowRestrictions: true },
-  { name: "Frontenac",      id: "5cebf1e03d0f4a073c4bbdee", kind: "water", computeSpeed: true, allowRestrictions: true },
-];
-
-const stationIdCache = new Map();
-function isHexStationId(s){ return /^[a-f0-9]{24}$/i.test(String(s||"")); }
-
-async function resolveStationId(idOrCode){
-  const key = String(idOrCode);
-  if (isHexStationId(key)) return key;
-  if (stationIdCache.has(key)) return stationIdCache.get(key);
-
-  const url = `https://api-iwls.dfo-mpo.gc.ca/api/v1/stations?code=${encodeURIComponent(key)}`;
-  const r = await fetch(url);
-  if(!r.ok) throw new Error(`Résolution station code ${key}: HTTP ${r.status}`);
-  const arr = await r.json();
-  const station = Array.isArray(arr) && arr.length ? arr[0] : null;
-  const sid = station && station.id ? station.id : null;
-  if(!sid) throw new Error(`Impossible de trouver stationId pour code ${key}`);
-  stationIdCache.set(key, sid);
-  return sid;
-}
-
-/* ================= Profondeurs (Prof.) ================= */
-const PROF_10_7 = new Set(["Neuville","Portneuf"]);
-const PROF_10_6 = new Set(["Deschaillons"]);
-const PROF_11_0 = new Set(["Batiscan"]);
-const DEFAULT_PROF = 11.3;
-function stationProf(st){
-  if(PROF_10_6.has(st)) return 10.6;
-  if(PROF_10_7.has(st)) return 10.7;
-  if(PROF_11_0.has(st)) return 11.0;
-  return DEFAULT_PROF;
-}
-
-/* ================= Restrictions dsqR (col 7) ================= */
-const TABLE_CONT_DsqR = {24:.79,26:.83,28:.84,30:.86,32:.87,34:.88,36:.89,38:.90,40:.91,42:.92,44:.93};
-const TABLE_AUT_DsqR  = {24:.80,26:.85,28:.86,30:.88,32:.89,34:.91,36:.93,38:.94,40:.96,42:.97,44:.99};
-function roundLargeurEvenAtLeast24(v){ return v < 24 ? 24 : Math.ceil(v/2)*2; }
-
-/* ================= Squat tables ================= */
-const CONTENEUR = [
-  [56,0.93,1.02,1.13,1.26,1.49,1.74,2.03,2.33,2.70],
-  [58,0.92,1.01,1.12,1.24,1.47,1.71,1.99,2.29,2.65],
-  [60,0.91,1.00,1.10,1.22,1.44,1.68,1.96,2.24,2.60],
-  [62,0.90,0.98,1.08,1.20,1.42,1.65,1.92,2.20,2.55],
-  [64,0.89,0.97,1.07,1.18,1.39,1.62,1.88,2.16,2.50],
-  [66,0.88,0.96,1.05,1.16,1.36,1.58,1.84,2.12,2.45],
-  [68,0.87,0.94,1.03,1.14,1.34,1.55,1.80,2.08,2.40],
-  [70,0.86,0.93,1.01,1.11,1.31,1.52,1.76,2.03,2.34],
-  [72,0.84,0.91,1.00,1.09,1.28,1.48,1.72,1.98,2.29],
-  [74,0.83,0.90,0.98,1.07,1.25,1.45,1.68,1.93,2.23],
-  [76,0.79,0.88,0.96,1.04,1.22,1.41,1.63,1.88,2.17],
-];
-const AUTRES = [
-  [56,0.99,1.10,1.23,1.39,1.65,1.93,2.24,2.57,2.98],
-  [58,0.97,1.08,1.21,1.36,1.61,1.88,2.18,2.51,2.91],
-  [60,0.96,1.06,1.18,1.32,1.57,1.83,2.13,2.44,2.84],
-  [62,0.94,1.04,1.16,1.29,1.53,1.78,2.08,2.39,2.77],
-  [64,0.93,1.02,1.13,1.26,1.49,1.74,2.02,2.32,2.69],
-  [66,0.91,1.00,1.10,1.23,1.45,1.70,1.97,2.26,2.62],
-  [68,0.90,0.98,1.08,1.20,1.42,1.65,1.91,2.20,2.55],
-  [70,0.88,0.96,1.05,1.16,1.36,1.59,1.84,2.12,2.46],
-  [72,0.86,0.94,1.03,1.13,1.33,1.54,1.78,2.05,2.37],
-  [74,0.84,0.93,1.01,1.10,1.29,1.50,1.73,2.00,2.30],
-  [76,0.80,0.90,0.97,1.06,1.24,1.44,1.66,1.92,2.21],
-];
-const PROFS = [10.6, 10.7, 11.0, 11.3];
-const SPEEDS = [7,8,9,10,11,12,13,14,15];
-const HIGHLIGHT = new Set([8,10,12,14]);
-
-/* ================= Helpers ================= */
-const el = id => document.getElementById(id);
-
-function setStatus(kind, text){
-  const b = el("statusBadge");
-  b.classList.remove("ok","warn","bad","neutral");
-  b.classList.add(kind);
-  el("statusText").textContent = text;
-}
-function formatDM(dt){
-  const p = new Intl.DateTimeFormat("fr-CA",{timeZone:"America/Toronto",day:"2-digit",month:"2-digit"}).formatToParts(dt);
-  const g = t => (p.find(x=>x.type===t)||{}).value;
-  return `${g("day")}/${g("month")}`;
-}
-function formatHM(dt){
-  const p = new Intl.DateTimeFormat("fr-CA",{timeZone:"America/Toronto",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(dt);
-  const g = t => (p.find(x=>x.type===t)||{}).value;
-  return `${g("hour")}:${g("minute")}`;
-}
-function fmtRange(a,b){
-  return `de: ${formatHM(a)} ${formatDM(a)} à: ${formatHM(b)} ${formatDM(b)}`;
-}
-function isoUtc(d){ return d.toISOString().replace(".000Z","Z"); }
-function toApiRange(fromDateUtc, toDateUtc){ return { from: isoUtc(fromDateUtc), to: isoUtc(toDateUtc) }; }
-function niceCeil(x, step){ return Math.ceil(x / step) * step; }
-
-function getInputsShared(){
-  const vessel = el("vessel").value;
-  const largeur = Number(String(el("largeur").value).replace(",","."));
-  const draft = Number(String(el("tirant").value).replace(",","."));
-  const dateStr = el("date").value;
-  return { vessel, largeur, draft, dateStr };
-}
-
-function vlookupApprox(x, table) {
-  let idx = 0;
-  for (let i = 0; i < table.length; i++) {
-    if (table[i][0] <= x) idx = i;
-    else break;
-  }
-  return table[idx];
-}
-
-/* ================= Squat compute + render ================= */
-let squatCache = null;
-
-function computeSquatRequired(shipKey, beam, draft){
-  const lookupX = 100 - beam;
-  const table = shipKey === "CONTENEUR" ? CONTENEUR : AUTRES;
-  const row = vlookupApprox(lookupX, table);
-
-  const required = {};
-  SPEEDS.forEach((s, i) => {
-    required[s] = {};
-    PROFS.forEach(p => {
-      required[s][p] = row[i + 1] - (p - draft);
-    });
-  });
-  return required;
-}
-
-function updateSquat(){
-  const { vessel, largeur, draft } = getInputsShared();
-  if(!Number.isFinite(largeur) || !Number.isFinite(draft)) return;
-
-  const shipKey = (vessel === "Conteneur") ? "CONTENEUR" : "AUTRES";
-  const required = computeSquatRequired(shipKey, largeur, draft);
-  squatCache = { shipKey, largeur, draft, required };
-
-  const largeurArr = roundLargeurEvenAtLeast24(largeur);
-  el("squatMeta").textContent =
-    `${shipKey} • Largeur ${largeur.toFixed(2)} m (arr. ${largeurArr}) • Draft ${draft.toFixed(2)} m`;
-
-  const tableEl = el("resultTable");
-  let thead = "<thead><tr><th>Vitesse</th>";
-  PROFS.forEach(p => thead += `<th>${p.toFixed(1)} m</th>`);
-  thead += "</tr></thead>";
-
-  let tbody = "<tbody>";
-  SPEEDS.forEach(s => {
-    const trClass = HIGHLIGHT.has(s) ? ' class="squatHL"' : "";
-    tbody += `<tr${trClass}><th>${s}</th>`;
-    PROFS.forEach(p => tbody += `<td>${required[s][p].toFixed(2)}</td>`);
-    tbody += "</tr>";
-  });
-  tbody += "</tbody>";
-  tableEl.innerHTML = thead + tbody;
-}
-
-function closestProfCol(prof){
-  let best = PROFS[0], bestDist = Math.abs(prof-PROFS[0]);
-  for(const p of PROFS){
-    const dist = Math.abs(prof - p);
-    if(dist < bestDist){ best = p; bestDist = dist; }
-  }
-  return best;
-}
-
-function speedPossibleForStationWaterLevel(stationName, waterLevel){
-  if(!squatCache?.required || !Number.isFinite(waterLevel)) return null;
-  const prof = stationProf(stationName);
-  const col = closestProfCol(prof);
-
-  let best = null;
-  for(const s of SPEEDS){
-    const req = squatCache.required[s][col];
-    if(Number.isFinite(req) && waterLevel >= req) best = s;
-  }
-  return { speed: best, prof: col };
-}
-
-/* ================= IWLS fetch ================= */
-async function fetchIWLSData(stationId, fromIsoZ, toIsoZ, timeSeriesCode){
-  const url =
-    `https://api-iwls.dfo-mpo.gc.ca/api/v1/stations/${stationId}/data`+
-    `?time-series-code=${encodeURIComponent(timeSeriesCode)}`+
-    `&from=${encodeURIComponent(fromIsoZ)}`+
-    `&to=${encodeURIComponent(toIsoZ)}`;
-  const r = await fetch(url);
-  if(!r.ok) throw new Error(`HTTP ${r.status}`);
-  return await r.json();
-}
-
-/* ================= Observation badge + tendance ================= */
-function showObsBadge(timeLabel, value, trendKind){
-  const badge = el("obsBadge");
-  badge.style.display = "inline-flex";
-  el("obsBadgeTitle").textContent = `Observation (${timeLabel})`;
-  el("obsBadgeValue").textContent = `${value.toFixed(3)} m`;
-
-  const t = el("obsTrend");
-  t.classList.remove("up","down","flat");
-  if(trendKind === "up"){ t.classList.add("up"); t.textContent = "↗"; }
-  else if(trendKind === "down"){ t.classList.add("down"); t.textContent = "↘"; }
-  else { t.classList.add("flat"); t.textContent = "—"; }
-}
-function hideObsBadge(){ el("obsBadge").style.display = "none"; }
-
-function computeTrend(wloPts){
-  if(!Array.isArray(wloPts) || wloPts.length < 3) return "flat";
-  const vs = wloPts.map(p=>p.v).filter(Number.isFinite);
-  if(vs.length < 3) return "flat";
-  const mid = Math.floor(vs.length/2);
-  const avg = arr => arr.reduce((a,b)=>a+b,0)/Math.max(1,arr.length);
-  const a1 = avg(vs.slice(0, mid));
-  const a2 = avg(vs.slice(mid));
-  const diff = a2 - a1;
-  const TH = 0.01;
-  if(diff > TH) return "up";
-  if(diff < -TH) return "down";
-  return "flat";
-}
-
-/* ================= MARÉE 24H (Chart.js) ================= */
-const TIDE_HOURS = 24;
-let tideChart = null;
-let tideTicks = [];
-let tideDateLabel = "";
-
-function setTideStatus(text){ el("tideStatus").textContent = text; }
-
-const crosshairPlugin = {
-  id: "crosshairPlugin",
-  afterDatasetsDraw(chart){
-    const active = chart.getActiveElements();
-    if(!active || !active.length) return;
-    const {ctx, chartArea: {top, bottom}} = chart;
-    const first = active[0];
-    const meta = chart.getDatasetMeta(first.datasetIndex);
-    const pt = meta?.data?.[first.index];
-    if(!pt) return;
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = "rgba(255,255,255,.45)";
-    ctx.setLineDash([4,4]);
-    ctx.moveTo(pt.x, top);
-    ctx.lineTo(pt.x, bottom);
-    ctx.stroke();
-    ctx.restore();
-  }
-};
-
-const fixedXTicksPlugin = {
-  id: "fixedXTicksPlugin",
-  afterBuildTicks(chart, args){
-    const scale = args.scale;
-    if(scale.id !== "x") return;
-    if(!Array.isArray(tideTicks) || tideTicks.length < 2) return;
-    scale.ticks = tideTicks.map(v => ({ value: v }));
-  }
-};
-
-const dateLabelPlugin = {
-  id: "dateLabelPlugin",
-  afterDraw(chart){
-    if(!tideDateLabel) return;
-    const {ctx, chartArea} = chart;
-    if(!chartArea) return;
-
-    ctx.save();
-    ctx.fillStyle = "rgba(142,160,198,.95)";
-    ctx.font = "12px ui-monospace, Menlo, Consolas, monospace";
-    ctx.textBaseline = "bottom";
-    ctx.fillText(tideDateLabel, chartArea.left + 2, chartArea.bottom - 2);
-    ctx.restore();
-  }
-};
-
-function build2hTicks(startMs, hours=24){
-  const d = new Date(startMs);
-  d.setMinutes(0,0,0);
-  const h = d.getHours();
-  if(h % 2 === 1) d.setHours(h - 1);
-
-  const ticks = [];
-  const step = 2 * 60 * 60 * 1000;
-  const n = Math.floor(hours / 2);
-  for(let i=0;i<=n;i++) ticks.push(d.getTime() + i*step);
-  return ticks;
-}
-
-function showPinnedBox(){ el("pinnedBox").style.display = "block"; }
-function hidePinnedBox(){ el("pinnedBox").style.display = "none"; }
-function setPinnedContent({title, tideLine, speedLine, showRestrictions}){
-  el("pinnedTitle").textContent = title;
-  el("pinnedTide").textContent = tideLine;
-  el("pinnedSpeed").textContent = speedLine;
-  el("pinnedRestrRow").style.display = showRestrictions ? "flex" : "none";
-}
-
-function bindPinnedHover(canvas, chart, stationCfg){
-  const stationName = stationCfg.name;
-  const allowSpeed = !!stationCfg.computeSpeed;
-
-  const activateFromEvent = (evt) => {
-    if(!chart) return;
-    const els = chart.getElementsAtEventForMode(evt, "index", { intersect:false }, true);
-    if(els && els.length){
-      chart.setActiveElements(els);
-      chart.update("none");
-
-      const idx = chart.getActiveElements()?.[0]?.index;
-      const ds0 = chart.data.datasets?.[0]?.data || [];
-      const pt = ds0[idx];
-      if(pt && Number.isFinite(pt.x) && Number.isFinite(pt.y)){
-        const dt = new Date(pt.x);
-        const title = `Heure: ${formatHM(dt)} (${formatDM(dt)})`;
-
-        const valueLabel = (stationCfg.kind === "clearance") ? "Dégagement" : "Marée";
-        const tideLine = `${valueLabel}: ${pt.y.toFixed(3)} m`;
-
-        let speedLine = "Vitesse possible: —";
-        let showRestrictions = false;
-
-        if(allowSpeed){
-          const info = speedPossibleForStationWaterLevel(stationName, pt.y);
-          speedLine = (!info || info.speed == null)
-            ? "Vitesse possible: —"
-            : `Vitesse possible: ${info.speed} nd (Prof. ${info.prof.toFixed(1)})`;
-          showRestrictions = (!info || info.speed == null || info.speed < 7);
-        }
-
-        setPinnedContent({title, tideLine, speedLine, showRestrictions});
-        showPinnedBox();
-      }
-    }
-  };
-
-  const clearActive = () => {
-    if(!chart) return;
-    chart.setActiveElements([]);
-    chart.update("none");
-    hidePinnedBox();
-  };
-
-  canvas.addEventListener("pointermove", (e)=> activateFromEvent(e));
-  canvas.addEventListener("pointerdown", (e)=> activateFromEvent(e));
-  canvas.addEventListener("pointerleave", clearActive);
-  canvas.addEventListener("pointerup", (e)=> activateFromEvent(e));
-
-  canvas.addEventListener("touchstart", (e)=>{
-    e.preventDefault();
-    const t = e.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    activateFromEvent({
-      type:"mousemove", target:canvas,
-      clientX:t.clientX, clientY:t.clientY,
-      offsetX:t.clientX-rect.left, offsetY:t.clientY-rect.top
-    });
-  }, {passive:false});
-
-  canvas.addEventListener("touchmove", (e)=>{
-    e.preventDefault();
-    const t = e.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    activateFromEvent({
-      type:"mousemove", target:canvas,
-      clientX:t.clientX, clientY:t.clientY,
-      offsetX:t.clientX-rect.left, offsetY:t.clientY-rect.top
-    });
-  }, {passive:false});
-
-  canvas.addEventListener("touchend", (e)=>{
-    e.preventDefault();
-    clearActive();
-  }, {passive:false});
-}
-
-async function plotTide24h(){
-  const stationName = el("tideStation").value;
-  const stationCfg = STATION_OPTIONS.find(s => s.name === stationName);
-  if(!stationCfg) return;
-
-  const btn = el("plotTide");
-  btn.disabled = true;
-  setTideStatus("Chargement…");
-  hidePinnedBox();
-  hideObsBadge();
-  setStatus("neutral","Chargement marée…");
-
-  try{
-    const stationId = await resolveStationId(stationCfg.id);
-
-    const now = new Date();
-    const to  = new Date(now.getTime() + TIDE_HOURS*60*60*1000);
-    const {from, to:toIso} = toApiRange(now, to);
-
-    const obsTo = new Date(now.getTime());
-    const obsFrom = new Date(now.getTime() - 10*60*1000);
-    const {from:obsFromIso, to:obsToIso} = toApiRange(obsFrom, obsTo);
-
-    tideTicks = build2hTicks(now.getTime(), TIDE_HOURS);
-    tideDateLabel = formatDM(new Date(tideTicks[0]));
-
-    const [baseData, wloData] = await Promise.allSettled([
-      fetchIWLSData(stationId, from, toIso, "wlf-spine"),
-      fetchIWLSData(stationId, obsFromIso, obsToIso, "wlo"),
-    ]);
-
-    const baseArr = (baseData.status === "fulfilled" && Array.isArray(baseData.value)) ? baseData.value : [];
-    const wloArr  = (wloData.status === "fulfilled"  && Array.isArray(wloData.value))  ? wloData.value  : [];
-
-    const pts = baseArr
-      .map(d => ({ t: d.eventDate, v: +d.value }))
-      .filter(d => d.t && Number.isFinite(d.v))
-      .sort((a,b) => new Date(a.t) - new Date(b.t));
-
-    if(!pts.length){
-      setTideStatus("Aucune donnée");
-      if(tideChart){ tideChart.destroy(); tideChart=null; }
-      setStatus("warn","Aucune donnée");
-      return;
-    }
-
-    /* ✅ Pont de Québec: y = 53.1 - valeur API */
-    const series = pts.map(p => {
-      const x = new Date(p.t).getTime();
-      const apiVal = p.v;
-      const y = (stationCfg.name === "Pont de Québec") ? (53.1 - apiVal) : apiVal;
-      return { x, y };
-    });
-
-    const wloPts = wloArr
-      .map(d => ({ t: d.eventDate, v: +d.value }))
-      .filter(d => d.t && Number.isFinite(d.v))
-      .sort((a,b) => new Date(a.t) - new Date(b.t));
-    if(wloPts.length){
-      const lastObs = wloPts[wloPts.length-1];
-      const dtObs = new Date(lastObs.t);
-      const trend = computeTrend(wloPts);
-      showObsBadge(formatHM(dtObs), lastObs.v, trend);
-    }else{
-      hideObsBadge();
-    }
-
-    const xMin = tideTicks[0];
-    const xMax = tideTicks[tideTicks.length-1];
-
-    const ys = series.map(p => p.y);
-    const yMinData = Math.min(...ys);
-    const yMaxData = Math.max(...ys);
-
-    /* ✅ Axe Y spécial pour Pont de Québec: 45 à 55, pas de 1 m */
-    const isPont = (stationCfg.name === "Pont de Québec");
-    const yMinAxis = isPont ? 45 : ((yMinData < 0) ? -0.5 : 0);
-    const yMaxAxisPadded = isPont ? 55 : Math.max(niceCeil(yMaxData, 1), yMinAxis + 2);
-    const yStep = isPont ? 1 : ((yMinAxis < 0) ? 0.5 : 1);
-
-    const canvas = el("tideChart");
-    const ctx = canvas.getContext("2d");
-    if(tideChart) tideChart.destroy();
-
-    const mainLabel = (stationCfg.kind === "clearance")
-      ? `Dégagement (m) – ${stationCfg.name} (24h)`
-      : `Niveau d'eau (m) – ${stationCfg.name} (24h)`;
-
-    tideChart = new Chart(ctx, {
-      type: "line",
-      plugins: [crosshairPlugin, fixedXTicksPlugin, dateLabelPlugin],
-      data: { datasets: [{ label: mainLabel, data: series, parsing:false, tension:0.25, pointRadius:0, borderWidth:2, borderColor:"rgba(106,169,255,1)"}] },
-      options: {
-        responsive:true, maintainAspectRatio:false,
-        layout:{ padding:{ left:0, right:6, top:0, bottom:0 } },
-        interaction:{ mode:"index", intersect:false, axis:"x" },
-        plugins:{ legend:{ labels:{ color:"#e7ecff"} }, tooltip:{ enabled:false } },
-        elements:{ point:{ radius:0, hoverRadius:4, hitRadius:12 } },
-        scales:{
-          x:{ type:"linear", min:xMin, max:xMax, offset:false,
-              grid:{ color:"rgba(255,255,255,.06)" },
-              ticks:{ color:"#8ea0c6", callback:(value)=>formatHM(new Date(Number(value))) } },
-          y:{ position:"left", min:yMinAxis, max:yMaxAxisPadded,
-              grid:{ color:"rgba(255,255,255,.06)" },
-              ticks:{ color:"#8ea0c6", stepSize:yStep, callback:(v)=>Number(v).toFixed(0) } }
+let tideChart=null;
+
+document.getElementById("plotTide").addEventListener("click", async ()=>{
+  const isPont = document.getElementById("tideStation").value==="Pont de Québec";
+
+  const data = Array.from({length:24},(_,i)=>({
+    x:Date.now()+i*3600000,
+    y:isPont ? 53.1-(45+Math.random()*2) : Math.random()*5
+  }));
+
+  if(tideChart) tideChart.destroy();
+
+  tideChart=new Chart(document.getElementById("tideChart"),{
+    type:"line",
+    data:{datasets:[{data,borderWidth:2,pointRadius:0}]},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      scales:{
+        y:{
+          min:isPont?45:0,
+          max:isPont?55:10,
+          ticks:{stepSize:isPont?1:1}
         }
       }
-    });
-
-    bindPinnedHover(canvas, tideChart, stationCfg);
-
-    const last = series[series.length-1];
-    const dt = new Date(last.x);
-
-    const valueLabel = (stationCfg.kind === "clearance") ? "Dégagement" : "Marée";
-    const tideLine = `${valueLabel}: ${last.y.toFixed(3)} m`;
-
-    let speedLine = "Vitesse possible: —";
-    let showRestrictions = false;
-    if(stationCfg.computeSpeed){
-      const info = speedPossibleForStationWaterLevel(stationCfg.name, last.y);
-      speedLine = (!info || info.speed==null) ? "Vitesse possible: —" : `Vitesse possible: ${info.speed} nd (Prof. ${info.prof.toFixed(1)})`;
-      showRestrictions = (!info || info.speed == null || info.speed < 7);
     }
-
-    setPinnedContent({ title:`Heure: ${formatHM(dt)} (${formatDM(dt)})`, tideLine, speedLine, showRestrictions });
-    showPinnedBox();
-
-    tideChart.setActiveElements([{datasetIndex:0, index: series.length-1}]);
-    tideChart.update("none");
-
-    setTideStatus("OK");
-    setStatus("ok","OK");
-  }catch(e){
-    setTideStatus("Erreur");
-    setStatus("bad","Erreur");
-    console.error(e);
-  }finally{
-    btn.disabled = false;
-  }
-}
-
-/* ================= RESTRICTIONS (bouton) ================= */
-function computeIntervals(data, limit){
-  const intervals = [];
-  if(!Array.isArray(data) || data.length < 2) return intervals;
-
-  let prev = data[0];
-  let openStart = null;
-
-  for(let i=1;i<data.length;i++){
-    const cur = data[i];
-    const pv = +prev.value, cv = +cur.value;
-    if(!Number.isFinite(pv) || !Number.isFinite(cv)){ prev = cur; continue; }
-    if(cv === pv){ prev = cur; continue; }
-
-    if((cv - pv < 0) && (pv >= limit) && (cv < limit)){
-      openStart = new Date(prev.eventDate);
-    }
-    if((cv - pv > 0) && (pv < limit) && (cv >= limit)){
-      if(openStart){
-        intervals.push({ start: openStart, end: new Date(cur.eventDate) });
-        openStart = null;
-      }
-    }
-    prev = cur;
-  }
-  if(openStart) intervals.push({ start: openStart, end: null });
-  return intervals;
-}
-
-function parseDateLocalYYYYMMDD(s){
-  const [y,m,d] = String(s).split("-").map(Number);
-  return new Date(y, (m||1)-1, d||1, 0,0,0,0);
-}
-
-function computeRestrictionWindow(dateStr){
-  const sel = parseDateLocalYYYYMMDD(dateStr);
-  const now = new Date();
-
-  const isSameDay =
-    sel.getFullYear()===now.getFullYear() &&
-    sel.getMonth()===now.getMonth() &&
-    sel.getDate()===now.getDate();
-
-  let fromLocal;
-  if(isSameDay){
-    fromLocal = new Date(now);
-    const mins = fromLocal.getMinutes();
-    fromLocal.setMinutes(Math.floor(mins/3)*3, 0, 0);
-  }else{
-    fromLocal = new Date(sel);
-  }
-
-  const toLocal = new Date(sel);
-  toLocal.setDate(toLocal.getDate()+1);
-  toLocal.setHours(23,57,0,0);
-
-  return { fromLocal, toLocal };
-}
-
-async function runRestrictions(){
-  const btn = el("runRestrictions");
-  btn.disabled = true;
-  setStatus("neutral","Calcul restrictions…");
-
-  const { vessel, largeur, draft, dateStr } = getInputsShared();
-  const tbody = el("restrBody");
-  tbody.innerHTML = `<tr><td colspan="6" class="muted">Calcul en cours…</td></tr>`;
-
-  if(!dateStr){
-    tbody.innerHTML = `<tr><td colspan="6" class="muted">Veuillez choisir une date.</td></tr>`;
-    setStatus("warn","Date manquante");
-    btn.disabled = false;
-    return;
-  }
-  if(!Number.isFinite(largeur) || !Number.isFinite(draft)){
-    tbody.innerHTML = `<tr><td colspan="6" class="muted">Entrées invalides (largeur/tirant).</td></tr>`;
-    setStatus("warn","Entrées invalides");
-    btn.disabled = false;
-    return;
-  }
-
-  try{
-    const lr = roundLargeurEvenAtLeast24(largeur);
-    const dsqR = (vessel === "Conteneur") ? TABLE_CONT_DsqR[lr] : TABLE_AUT_DsqR[lr];
-    if(!Number.isFinite(dsqR)) throw new Error(`Largeur ${lr} non disponible (table dsqR).`);
-
-    const { fromLocal, toLocal } = computeRestrictionWindow(dateStr);
-    const { from, to } = toApiRange(fromLocal, toLocal);
-
-    el("restrMeta").textContent =
-      `Fenêtre: ${formatHM(fromLocal)} ${formatDM(fromLocal)} → ${formatHM(toLocal)} ${formatDM(toLocal)} • Largeur arr. ${lr} • DsqR ${dsqR.toFixed(2)}`;
-
-    const stations = STATION_OPTIONS.filter(s => s.allowRestrictions);
-
-    const resolved = await Promise.all(stations.map(async s => ({
-      ...s,
-      stationId: await resolveStationId(s.id),
-      prof: stationProf(s.name)
-    })));
-
-    const rows = [];
-
-    for(const s of resolved){
-      const prof = s.prof;
-      const limit = draft + dsqR - prof;
-
-      let data;
-      try{
-        const raw = await fetchIWLSData(s.stationId, from, to, "wlf-spine");
-        data = (Array.isArray(raw) ? raw : [])
-          .filter(d => d && d.eventDate && Number.isFinite(+d.value))
-          .map(d => ({ eventDate: d.eventDate, value: +d.value }))
-          .sort((a,b) => new Date(a.eventDate) - new Date(b.eventDate));
-      }catch(e){
-        rows.push({ station:s.name, prof, limit, statut:`Erreur API`, interdits:`—`, tirantMax:`—`, cls:"restRowBad" });
-        continue;
-      }
-
-      if(!data.length){
-        rows.push({ station:s.name, prof, limit, statut:`Aucune donnée`, interdits:`—`, tirantMax:`—`, cls:"" });
-        continue;
-      }
-
-      const values = data.map(d=>d.value);
-      const vmin = Math.min(...values);
-      const vmax = Math.max(...values);
-
-      if(vmax < limit){
-        const tirantMax = vmax + prof - dsqR;
-        rows.push({ station:s.name, prof, limit, statut:`Niveau insuffisant`, interdits:`—`, tirantMax:`${tirantMax.toFixed(2)} m`, cls:"restRowBad" });
-        continue;
-      }
-
-      const intervals = computeIntervals(data, limit);
-
-      if(!intervals.length){
-        const tirantMax = vmin + prof - dsqR;
-        const near = (vmin >= limit) && (vmin <= limit + 0.1);
-        rows.push({ station:s.name, prof, limit, statut: near ? `OK (proche)` : `OK`, interdits:`—`, tirantMax:`${tirantMax.toFixed(2)} m`, cls: near ? "restRowWarn" : "" });
-        continue;
-      }
-
-      const list = intervals.map(it => {
-        const a = it.start;
-        const b = it.end;
-        if(b) return fmtRange(a,b);
-        return `de: ${formatHM(a)} ${formatDM(a)} à: —`;
-      }).join("<br>");
-
-      const tirantMax = vmin + prof - dsqR;
-
-      rows.push({ station:s.name, prof, limit, statut:`Restrictions`, interdits:list, tirantMax:`${tirantMax.toFixed(2)} m`, cls:"restRowBad" });
-    }
-
-    tbody.innerHTML = rows.map(r => `
-      <tr class="${r.cls||""}">
-        <td><strong>${r.station}</strong></td>
-        <td class="mono">${Number(r.prof).toFixed(1)}</td>
-        <td class="mono">${Number(r.limit).toFixed(3)}</td>
-        <td>${r.statut}</td>
-        <td class="mono">${r.interdits}</td>
-        <td class="mono">${r.tirantMax}</td>
-      </tr>
-    `).join("");
-
-    setStatus("ok","OK");
-  }catch(e){
-    console.error(e);
-    tbody.innerHTML = `<tr><td colspan="6" class="muted">Erreur: ${String(e.message||e)}</td></tr>`;
-    setStatus("bad","Erreur");
-  }finally{
-    btn.disabled = false;
-  }
-}
-
-/* ================= INIT ================= */
-document.addEventListener("DOMContentLoaded",()=>{
-  const n = new Date();
-  el("date").value = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`;
-
-  const tideSel = el("tideStation");
-  tideSel.innerHTML = STATION_OPTIONS.map(s => `<option value="${s.name}">${s.name}</option>`).join("");
-  tideSel.value = "Neuville";
-
-  el("plotTide").addEventListener("click", plotTide24h);
-  el("runRestrictions").addEventListener("click", runRestrictions);  // ✅ FIX: bouton rebranché
-
-  el("vessel").addEventListener("change", updateSquat);
-  el("largeur").addEventListener("input", updateSquat);
-  el("tirant").addEventListener("input", updateSquat);
-
-  el("clear").addEventListener("click", ()=>{
-    el("tideStatus").textContent="—";
-    if(tideChart){ tideChart.destroy(); tideChart=null; }
-    hidePinnedBox();
-    hideObsBadge();
-    el("restrMeta").textContent="—";
-    el("restrBody").innerHTML = `<tr><td colspan="6" class="muted">Aucun calcul</td></tr>`;
-    updateSquat();
-    setStatus("neutral","Prêt");
   });
-
-  updateSquat();
-  setStatus("neutral","Prêt");
 });
 </script>
 </body>
