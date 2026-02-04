@@ -206,6 +206,14 @@ canvas{ touch-action:none; }
   #plotTide{ width:100%; display:block; }
   .obsBadge{ width:100%; }
 }
+  @media(max-width:520px){
+  #plotTide{
+    padding: 6px 10px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+}
+
 
 /* =================== SQUAT TABLE =================== */
 .squatTable{
@@ -853,7 +861,18 @@ async function plotTide24h(){
       return;
     }
 
-    const series = pts.map(p => ({ x: new Date(p.t).getTime(), y: p.v }));
+    const series = pts.map(p => {
+  const x = new Date(p.t).getTime();
+  const apiVal = p.v;
+
+  // ✅ Pont de Québec: afficher 53.1 - valeur API
+  const y = (stationCfg.name === "Pont de Québec")
+    ? (53.1 - apiVal)
+    : apiVal;
+
+  return { x, y };
+});
+
 
     const wloPts = wloArr
       .map(d => ({ t: d.eventDate, v: +d.value }))
@@ -1149,3 +1168,4 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
