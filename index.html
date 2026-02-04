@@ -203,28 +203,15 @@ canvas{ touch-action:none; }
 @media(max-width:520px){
   .tideControls{ grid-template-columns: 1fr; }
   .tideRight{ justify-content:flex-start; width:100%; }
-
-  /* ✅ Bouton marée: ne dépasse jamais l’écran, idéalement < largeur écran */
-  #plotTide{
-    display:block;
-    width:90vw;           /* moins que l’écran */
-    max-width:360px;      /* limite sur grands mobiles */
-    margin:0 auto;        /* centré */
-    padding:6px 12px;     /* plus petit (hauteur) */
-    font-size:14px;
-    border-radius:12px;
-
-    /* éviter un “bouton plus large que le viewport” causé par le parent */
-    flex: 0 1 auto;
-    box-sizing:border-box;
-
-    /* permet au texte de se placer si nécessaire sans élargir */
-    white-space: normal;
-    overflow: visible;
-    text-overflow: unset;
-  }
-
+  #plotTide{ width:100%; display:block; }
   .obsBadge{ width:100%; }
+
+  /* ✅ Bouton réduit en mobile (hauteur/texte) */
+  #plotTide{
+    padding: 6px 10px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
 }
 
 /* =================== SQUAT TABLE =================== */
@@ -545,8 +532,8 @@ function niceCeil(x, step){ return Math.ceil(x / step) * step; }
 
 function getInputsShared(){
   const vessel = el("vessel").value;
-  const largeur = Number(String(el("largeur").value).replace(",",".")); 
-  const draft = Number(String(el("tirant").value).replace(",","."));  
+  const largeur = Number(String(el("largeur").value).replace(",","."));
+  const draft = Number(String(el("tirant").value).replace(",","."));
   const dateStr = el("date").value;
   return { vessel, largeur, draft, dateStr };
 }
@@ -873,7 +860,307 @@ async function plotTide24h(){
       return;
     }
 
-    /* ✅ CHANGEMENT #1: Pont de Québec -> y = 53.1 - valeur API */
-    const isPont = (stationCfg.name === "Pont de Québec");
+    /* ✅ Pont de Québec: y = 53.1 - valeur API */
     const series = pts.map(p => {
-      const x = new D
+      const x = new Date(p.t).getTime();
+      const apiVal = p.v;
+      const y = (stationCfg.name === "Pont de Québec") ? (53.1 - apiVal) : apiVal;
+      return { x, y };
+    });
+
+    const wloPts = wloArr
+      .map(d => ({ t: d.eventDate, v: +d.value }))
+      .filter(d => d.t && Number.isFinite(d.v))
+      .sort((a,b) => new Date(a.t) - new Date(b.t));
+    if(wloPts.length){
+      const lastObs = wloPts[wloPts.length-1];
+      const dtObs = new Date(lastObs.t);
+      const trend = computeTrend(wloPts);
+      showObsBadge(formatHM(dtObs), lastObs.v, trend);
+    }else{
+      hideObsBadge();
+    }
+
+    const xMin = tideTicks[0];
+    const xMax = tideTicks[tideTicks.length-1];
+
+    const ys = series.map(p => p.y);
+    const yMinData = Math.min(...ys);
+    const yMaxData = Math.max(...ys);
+
+    /* ✅ Axe Y spécial pour Pont de Québec: 45 à 55, pas de 1 m */
+    const isPont = (stationCfg.name === "Pont de Québec");
+    const yMinAxis = isPont ? 45 : ((yMinData < 0) ? -0.5 : 0);
+    const yMaxAxisPadded = isPont ? 55 : Math.max(niceCeil(yMaxData, 1), yMinAxis + 2);
+    const yStep = isPont ? 1 : ((yMinAxis < 0) ? 0.5 : 1);
+
+    const canvas = el("tideChart");
+    const ctx = canvas.getContext("2d");
+    if(tideChart) tideChart.destroy();
+
+    const mainLabel = (stationCfg.kind === "clearance")
+      ? `Dégagement (m) – ${stationCfg.name} (24h)`
+      : `Niveau d'eau (m) – ${stationCfg.name} (24h)`;
+
+    tideChart = new Chart(ctx, {
+      type: "line",
+      plugins: [crosshairPlugin, fixedXTicksPlugin, dateLabelPlugin],
+      data: { datasets: [{ label: mainLabel, data: series, parsing:false, tension:0.25, pointRadius:0, borderWidth:2, borderColor:"rgba(106,169,255,1)"}] },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        layout:{ padding:{ left:0, right:6, top:0, bottom:0 } },
+        interaction:{ mode:"index", intersect:false, axis:"x" },
+        plugins:{ legend:{ labels:{ color:"#e7ecff"} }, tooltip:{ enabled:false } },
+        elements:{ point:{ radius:0, hoverRadius:4, hitRadius:12 } },
+        scales:{
+          x:{ type:"linear", min:xMin, max:xMax, offset:false,
+              grid:{ color:"rgba(255,255,255,.06)" },
+              ticks:{ color:"#8ea0c6", callback:(value)=>formatHM(new Date(Number(value))) } },
+          y:{ position:"left", min:yMinAxis, max:yMaxAxisPadded,
+              grid:{ color:"rgba(255,255,255,.06)" },
+              ticks:{ color:"#8ea0c6", stepSize:yStep, callback:(v)=>Number(v).toFixed(0) } }
+        }
+      }
+    });
+
+    bindPinnedHover(canvas, tideChart, stationCfg);
+
+    const last = series[series.length-1];
+    const dt = new Date(last.x);
+
+    const valueLabel = (stationCfg.kind === "clearance") ? "Dégagement" : "Marée";
+    const tideLine = `${valueLabel}: ${last.y.toFixed(3)} m`;
+
+    let speedLine = "Vitesse possible: —";
+    let showRestrictions = false;
+    if(stationCfg.computeSpeed){
+      const info = speedPossibleForStationWaterLevel(stationCfg.name, last.y);
+      speedLine = (!info || info.speed==null) ? "Vitesse possible: —" : `Vitesse possible: ${info.speed} nd (Prof. ${info.prof.toFixed(1)})`;
+      showRestrictions = (!info || info.speed == null || info.speed < 7);
+    }
+
+    setPinnedContent({ title:`Heure: ${formatHM(dt)} (${formatDM(dt)})`, tideLine, speedLine, showRestrictions });
+    showPinnedBox();
+
+    tideChart.setActiveElements([{datasetIndex:0, index: series.length-1}]);
+    tideChart.update("none");
+
+    setTideStatus("OK");
+    setStatus("ok","OK");
+  }catch(e){
+    setTideStatus("Erreur");
+    setStatus("bad","Erreur");
+    console.error(e);
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ================= RESTRICTIONS (bouton) ================= */
+function computeIntervals(data, limit){
+  const intervals = [];
+  if(!Array.isArray(data) || data.length < 2) return intervals;
+
+  let prev = data[0];
+  let openStart = null;
+
+  for(let i=1;i<data.length;i++){
+    const cur = data[i];
+    const pv = +prev.value, cv = +cur.value;
+    if(!Number.isFinite(pv) || !Number.isFinite(cv)){ prev = cur; continue; }
+    if(cv === pv){ prev = cur; continue; }
+
+    if((cv - pv < 0) && (pv >= limit) && (cv < limit)){
+      openStart = new Date(prev.eventDate);
+    }
+    if((cv - pv > 0) && (pv < limit) && (cv >= limit)){
+      if(openStart){
+        intervals.push({ start: openStart, end: new Date(cur.eventDate) });
+        openStart = null;
+      }
+    }
+    prev = cur;
+  }
+  if(openStart) intervals.push({ start: openStart, end: null });
+  return intervals;
+}
+
+function parseDateLocalYYYYMMDD(s){
+  const [y,m,d] = String(s).split("-").map(Number);
+  return new Date(y, (m||1)-1, d||1, 0,0,0,0);
+}
+
+function computeRestrictionWindow(dateStr){
+  const sel = parseDateLocalYYYYMMDD(dateStr);
+  const now = new Date();
+
+  const isSameDay =
+    sel.getFullYear()===now.getFullYear() &&
+    sel.getMonth()===now.getMonth() &&
+    sel.getDate()===now.getDate();
+
+  let fromLocal;
+  if(isSameDay){
+    fromLocal = new Date(now);
+    const mins = fromLocal.getMinutes();
+    fromLocal.setMinutes(Math.floor(mins/3)*3, 0, 0);
+  }else{
+    fromLocal = new Date(sel);
+  }
+
+  const toLocal = new Date(sel);
+  toLocal.setDate(toLocal.getDate()+1);
+  toLocal.setHours(23,57,0,0);
+
+  return { fromLocal, toLocal };
+}
+
+async function runRestrictions(){
+  const btn = el("runRestrictions");
+  btn.disabled = true;
+  setStatus("neutral","Calcul restrictions…");
+
+  const { vessel, largeur, draft, dateStr } = getInputsShared();
+  const tbody = el("restrBody");
+  tbody.innerHTML = `<tr><td colspan="6" class="muted">Calcul en cours…</td></tr>`;
+
+  if(!dateStr){
+    tbody.innerHTML = `<tr><td colspan="6" class="muted">Veuillez choisir une date.</td></tr>`;
+    setStatus("warn","Date manquante");
+    btn.disabled = false;
+    return;
+  }
+  if(!Number.isFinite(largeur) || !Number.isFinite(draft)){
+    tbody.innerHTML = `<tr><td colspan="6" class="muted">Entrées invalides (largeur/tirant).</td></tr>`;
+    setStatus("warn","Entrées invalides");
+    btn.disabled = false;
+    return;
+  }
+
+  try{
+    const lr = roundLargeurEvenAtLeast24(largeur);
+    const dsqR = (vessel === "Conteneur") ? TABLE_CONT_DsqR[lr] : TABLE_AUT_DsqR[lr];
+    if(!Number.isFinite(dsqR)) throw new Error(`Largeur ${lr} non disponible (table dsqR).`);
+
+    const { fromLocal, toLocal } = computeRestrictionWindow(dateStr);
+    const { from, to } = toApiRange(fromLocal, toLocal);
+
+    el("restrMeta").textContent =
+      `Fenêtre: ${formatHM(fromLocal)} ${formatDM(fromLocal)} → ${formatHM(toLocal)} ${formatDM(toLocal)} • Largeur arr. ${lr} • DsqR ${dsqR.toFixed(2)}`;
+
+    const stations = STATION_OPTIONS.filter(s => s.allowRestrictions);
+
+    const resolved = await Promise.all(stations.map(async s => ({
+      ...s,
+      stationId: await resolveStationId(s.id),
+      prof: stationProf(s.name)
+    })));
+
+    const rows = [];
+
+    for(const s of resolved){
+      const prof = s.prof;
+      const limit = draft + dsqR - prof;
+
+      let data;
+      try{
+        const raw = await fetchIWLSData(s.stationId, from, to, "wlf-spine");
+        data = (Array.isArray(raw) ? raw : [])
+          .filter(d => d && d.eventDate && Number.isFinite(+d.value))
+          .map(d => ({ eventDate: d.eventDate, value: +d.value }))
+          .sort((a,b) => new Date(a.eventDate) - new Date(b.eventDate));
+      }catch(e){
+        rows.push({ station:s.name, prof, limit, statut:`Erreur API`, interdits:`—`, tirantMax:`—`, cls:"restRowBad" });
+        continue;
+      }
+
+      if(!data.length){
+        rows.push({ station:s.name, prof, limit, statut:`Aucune donnée`, interdits:`—`, tirantMax:`—`, cls:"" });
+        continue;
+      }
+
+      const values = data.map(d=>d.value);
+      const vmin = Math.min(...values);
+      const vmax = Math.max(...values);
+
+      if(vmax < limit){
+        const tirantMax = vmax + prof - dsqR;
+        rows.push({ station:s.name, prof, limit, statut:`Niveau insuffisant`, interdits:`—`, tirantMax:`${tirantMax.toFixed(2)} m`, cls:"restRowBad" });
+        continue;
+      }
+
+      const intervals = computeIntervals(data, limit);
+
+      if(!intervals.length){
+        const tirantMax = vmin + prof - dsqR;
+        const near = (vmin >= limit) && (vmin <= limit + 0.1);
+        rows.push({ station:s.name, prof, limit, statut: near ? `OK (proche)` : `OK`, interdits:`—`, tirantMax:`${tirantMax.toFixed(2)} m`, cls: near ? "restRowWarn" : "" });
+        continue;
+      }
+
+      const list = intervals.map(it => {
+        const a = it.start;
+        const b = it.end;
+        if(b) return fmtRange(a,b);
+        return `de: ${formatHM(a)} ${formatDM(a)} à: —`;
+      }).join("<br>");
+
+      const tirantMax = vmin + prof - dsqR;
+
+      rows.push({ station:s.name, prof, limit, statut:`Restrictions`, interdits:list, tirantMax:`${tirantMax.toFixed(2)} m`, cls:"restRowBad" });
+    }
+
+    tbody.innerHTML = rows.map(r => `
+      <tr class="${r.cls||""}">
+        <td><strong>${r.station}</strong></td>
+        <td class="mono">${Number(r.prof).toFixed(1)}</td>
+        <td class="mono">${Number(r.limit).toFixed(3)}</td>
+        <td>${r.statut}</td>
+        <td class="mono">${r.interdits}</td>
+        <td class="mono">${r.tirantMax}</td>
+      </tr>
+    `).join("");
+
+    setStatus("ok","OK");
+  }catch(e){
+    console.error(e);
+    tbody.innerHTML = `<tr><td colspan="6" class="muted">Erreur: ${String(e.message||e)}</td></tr>`;
+    setStatus("bad","Erreur");
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ================= INIT ================= */
+document.addEventListener("DOMContentLoaded",()=>{
+  const n = new Date();
+  el("date").value = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`;
+
+  const tideSel = el("tideStation");
+  tideSel.innerHTML = STATION_OPTIONS.map(s => `<option value="${s.name}">${s.name}</option>`).join("");
+  tideSel.value = "Neuville";
+
+  el("plotTide").addEventListener("click", plotTide24h);
+  el("runRestrictions").addEventListener("click", runRestrictions);  // ✅ FIX: bouton rebranché
+
+  el("vessel").addEventListener("change", updateSquat);
+  el("largeur").addEventListener("input", updateSquat);
+  el("tirant").addEventListener("input", updateSquat);
+
+  el("clear").addEventListener("click", ()=>{
+    el("tideStatus").textContent="—";
+    if(tideChart){ tideChart.destroy(); tideChart=null; }
+    hidePinnedBox();
+    hideObsBadge();
+    el("restrMeta").textContent="—";
+    el("restrBody").innerHTML = `<tr><td colspan="6" class="muted">Aucun calcul</td></tr>`;
+    updateSquat();
+    setStatus("neutral","Prêt");
+  });
+
+  updateSquat();
+  setStatus("neutral","Prêt");
+});
+</script>
+</body>
+</html>
