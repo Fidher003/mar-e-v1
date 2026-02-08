@@ -41,6 +41,14 @@ h1{margin:0}
   border-radius:var(--radius);
   overflow:hidden;
 }
+  /* 🔧 FIX largeur bouton marée */
+#plotTide{
+  width: fit-content;
+  align-self: flex-start;
+  justify-self: start;
+  flex: 0 0 auto;
+}
+
 .hd{
   padding:14px 16px;
   border-bottom:1px solid var(--line);
@@ -191,9 +199,11 @@ canvas{ touch-action:none; }
   display: flex;
   gap: 10px;
   align-items: center;
-  justify-content: flex-start; /* ← à gauche */
+  justify-content: flex-start;
   flex-wrap: wrap;
+  width: auto;        /* ← important */
 }
+
 #plotTide{
   width: auto;              /* empêche full-width */
   min-width: unset;
@@ -1166,4 +1176,5 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
