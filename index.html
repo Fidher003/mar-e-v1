@@ -181,24 +181,26 @@ canvas{ touch-action:none; }
 
 /* ✅ Controls marée: mobile-friendly */
 .tideControls{
-  display:grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  align-items:end;
-  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  align-items: start;
 }
+
 .tideRight{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  justify-content:flex-end;
-  flex-wrap:wrap;
-  min-width: 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-start; /* ← à gauche */
+  flex-wrap: wrap;
 }
 #plotTide{
+  width: auto;              /* empêche full-width */
+  min-width: unset;
+  padding: 6px 14px;        /* plus compact */
+  font-size: 14px;
+  border-radius: 12px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 @media(max-width:520px){
   .tideControls{ grid-template-columns: 1fr; }
@@ -1164,3 +1166,4 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
