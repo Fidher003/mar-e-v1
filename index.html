@@ -215,7 +215,7 @@ canvas{ touch-action:none; }
 @media(max-width:520px){
   .tideControls{ grid-template-columns: 1fr; }
   .tideRight{ justify-content:flex-start; width:100%; }
-  #plotTide{ width:100%; display:block; }
+  #plotTide{ width: fit-content; display:inline-flex; flex: 0 0 auto; }
   .obsBadge{ width:100%; }
 
   /* ✅ Bouton réduit en mobile (hauteur/texte) */
@@ -1176,5 +1176,6 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
