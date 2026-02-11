@@ -603,6 +603,15 @@ function updateSquat(){
   });
   tbody += "</tbody>";
   tableEl.innerHTML = thead + tbody;
+
+  // ✅ AJOUT: mise à jour de la ligne rouge si une courbe est déjà affichée
+  if(tideChart && currentTideStationCfg?.computeSpeed && squatCache?.required){
+    const prof = stationProf(currentTideStationCfg.name);
+    const col = closestProfCol(prof);
+    const req = squatCache.required?.[7]?.[col];
+    tideChart.options.plugins.limitLinePlugin.y = Number.isFinite(req) ? req : null;
+    tideChart.update("none");
+  }
 }
 
 function closestProfCol(prof){
@@ -675,6 +684,9 @@ let tideChart = null;
 let tideTicks = [];
 let tideDateLabel = "";
 
+// ✅ AJOUT: pour mettre à jour la ligne rouge quand squat change
+let currentTideStationCfg = null;
+
 function setTideStatus(text){ el("tideStatus").textContent = text; }
 
 const crosshairPlugin = {
@@ -722,6 +734,68 @@ const dateLabelPlugin = {
     ctx.font = "12px ui-monospace, Menlo, Consolas, monospace";
     ctx.textBaseline = "bottom";
     ctx.fillText(tideDateLabel, chartArea.left + 2, chartArea.bottom - 2);
+    ctx.restore();
+  }
+};
+
+// ✅ AJOUT: ligne rouge + label "Limite 7 nd"
+const limitLinePlugin = {
+  id: "limitLinePlugin",
+  afterDraw(chart, args, opts){
+    const yVal = opts?.y;
+    if(!Number.isFinite(yVal)) return;
+
+    const yScale = chart.scales?.y;
+    const area = chart.chartArea;
+    if(!yScale || !area) return;
+
+    const yPix = yScale.getPixelForValue(yVal);
+    if(yPix < area.top || yPix > area.bottom) return;
+
+    const {ctx} = chart;
+
+    // Ligne
+    ctx.save();
+    ctx.beginPath();
+    ctx.strokeStyle = "rgba(255,80,100,.95)";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([]);
+    ctx.moveTo(area.left, yPix);
+    ctx.lineTo(area.right, yPix);
+    ctx.stroke();
+
+    // Label
+    const label = opts?.label || "Limite 7 nd";
+    ctx.font = "12px ui-monospace, Menlo, Consolas, monospace";
+    ctx.textBaseline = "bottom";
+
+    const padX = 6;
+    const textW = ctx.measureText(label).width;
+    const boxW = textW + 10;
+    const boxH = 18;
+
+    // position: en haut de la ligne, côté gauche
+    let x = area.left + padX;
+    let y = yPix - 4;
+    // si trop haut, on met en dessous
+    if(y - boxH < area.top) y = yPix + boxH;
+
+    // petit fond pour lisibilité
+    ctx.fillStyle = "rgba(0,0,0,.55)";
+    ctx.strokeStyle = "rgba(255,255,255,.14)";
+    ctx.lineWidth = 1;
+
+    const boxX = x - 5;
+    const boxY = y - boxH;
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxW, boxH, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    // texte
+    ctx.fillStyle = "rgba(255,160,170,.98)";
+    ctx.fillText(label, x, y - 4);
+
     ctx.restore();
   }
 };
@@ -831,6 +905,9 @@ async function plotTide24h(){
   const stationCfg = STATION_OPTIONS.find(s => s.name === stationName);
   if(!stationCfg) return;
 
+  // ✅ AJOUT: mémoriser la station affichée (pour updateSquat)
+  currentTideStationCfg = stationCfg;
+
   const btn = el("plotTide");
   btn.disabled = true;
   setTideStatus("Chargement…");
@@ -906,6 +983,15 @@ async function plotTide24h(){
     const yMaxAxisPadded = isPont ? 55 : Math.max(niceCeil(yMaxData, 1), yMinAxis + 2);
     const yStep = isPont ? 1 : ((yMinAxis < 0) ? 0.5 : 1);
 
+    // ✅ AJOUT: Limite marée pour 7 nd (ligne rouge)
+    let limit7 = null;
+    if(stationCfg.computeSpeed && squatCache?.required){
+      const prof = stationProf(stationCfg.name);
+      const col = closestProfCol(prof);
+      const req = squatCache.required?.[7]?.[col];
+      if(Number.isFinite(req)) limit7 = req;
+    }
+
     const canvas = el("tideChart");
     const ctx = canvas.getContext("2d");
     if(tideChart) tideChart.destroy();
@@ -916,13 +1002,19 @@ async function plotTide24h(){
 
     tideChart = new Chart(ctx, {
       type: "line",
-      plugins: [crosshairPlugin, fixedXTicksPlugin, dateLabelPlugin],
+      plugins: [crosshairPlugin, fixedXTicksPlugin, dateLabelPlugin, limitLinePlugin],
       data: { datasets: [{ label: mainLabel, data: series, parsing:false, tension:0.25, pointRadius:0, borderWidth:2, borderColor:"rgba(106,169,255,1)"}] },
       options: {
         responsive:true, maintainAspectRatio:false,
         layout:{ padding:{ left:0, right:6, top:0, bottom:0 } },
         interaction:{ mode:"index", intersect:false, axis:"x" },
-        plugins:{ legend:{ labels:{ color:"#e7ecff"} }, tooltip:{ enabled:false } },
+        plugins:{
+          legend:{ labels:{ color:"#e7ecff"} },
+          tooltip:{ enabled:false },
+
+          // ✅ AJOUT: config de la ligne rouge + label
+          limitLinePlugin: { y: limit7, label: "Limite 7 nd" }
+        },
         elements:{ point:{ radius:0, hoverRadius:4, hitRadius:12 } },
         scales:{
           x:{ type:"linear", min:xMin, max:xMax, offset:false,
@@ -1176,6 +1268,3 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
-
-
-
