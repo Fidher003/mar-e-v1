@@ -204,6 +204,25 @@ canvas{ touch-action:none; }
   align-items: start;
 }
 
+  /* Organisation bouton + badges sur 2 lignes */
+.tideRight{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  align-items:flex-start;
+}
+
+.tideButtonRow{
+  width:100%;
+}
+
+.tideBadgeRow{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+
 .tideRight{
   display: flex;
   gap: 10px;
@@ -374,19 +393,40 @@ canvas{ touch-action:none; }
             <select id="tideStation"></select>
           </div>
 
-          <div class="tideRight">
-            <button id="plotTide">Générer courbe marée</button>
+<div class="tideRight">
 
-            <div class="obsBadge" id="obsBadge" title="Observation wlo (10 minutes)">
-              <div style="display:flex;flex-direction:column;gap:4px">
-                <div class="obsTitle" id="obsBadgeTitle">Observation (—)</div>
-                <div class="obsValueRow">
-                  <span class="obsDot"></span>
-                  <span class="obsValue" id="obsBadgeValue">—</span>
-                  <span class="trend flat" id="obsTrend" aria-label="Tendance">—</span>
-                </div>
-              </div>
-            </div>
+  <!-- Ligne 1 : bouton -->
+  <div class="tideButtonRow">
+    <button id="plotTide">Générer courbe marée</button>
+  </div>
+
+  <!-- Ligne 2 : badges -->
+  <div class="tideBadgeRow">
+    <div class="obsBadge" id="obsBadge" title="Observation wlo (10 minutes)">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div class="obsTitle" id="obsBadgeTitle">Observation (—)</div>
+        <div class="obsValueRow">
+          <span class="obsDot"></span>
+          <span class="obsValue" id="obsBadgeValue">—</span>
+          <span class="trend flat" id="obsTrend">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="obsBadge obsSpeedBadge" id="obsSpeedBadge" title="Vitesse possible selon l'observation">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div class="obsTitle">Vitesse (obs)</div>
+        <div class="obsValueRow">
+          <span class="obsDot"></span>
+          <span class="obsValue" id="obsSpeedValue">—</span>
+          <span class="muted small" id="obsSpeedProf">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
 
             <!-- ✅ PATCH 1: Nouveau badge "Vitesse (obs)" à droite de l'observation -->
             <div class="obsBadge obsSpeedBadge" id="obsSpeedBadge" title="Vitesse possible selon l'observation">
@@ -1318,4 +1358,5 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
