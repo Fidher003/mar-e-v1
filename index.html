@@ -415,7 +415,7 @@ canvas{ touch-action:none; }
 
     <div class="obsBadge obsSpeedBadge" id="obsSpeedBadge" title="Vitesse possible selon l'observation">
       <div style="display:flex;flex-direction:column;gap:4px">
-        <div class="obsTitle">Vitesse (obs)</div>
+        <div class="obsTitle">Vitesse Max</div>
         <div class="obsValueRow">
           <span class="obsDot"></span>
           <span class="obsValue" id="obsSpeedValue">—</span>
@@ -920,7 +920,7 @@ function bindPinnedHover(canvas, chart, stationCfg){
           const info = speedPossibleForStationWaterLevel(stationName, pt.y);
           speedLine = (!info || info.speed == null)
             ? "Vitesse possible: —"
-            : `Vitesse possible: ${info.speed} nd (Prof. ${info.prof.toFixed(1)})`;
+            : `Vitesse possible: ${info.speed} nds (Prof. ${info.prof.toFixed(1)})`;
           showRestrictions = (!info || info.speed == null || info.speed < 7);
         }
 
@@ -1102,7 +1102,7 @@ async function plotTide24h(){
           tooltip:{ enabled:false },
 
           // ✅ AJOUT: config de la ligne rouge + label
-          limitLinePlugin: { y: limit7, label: "Limite 7 nd" }
+          limitLinePlugin: { y: limit7, label: "7 nds" }
         },
         elements:{ point:{ radius:0, hoverRadius:4, hitRadius:12 } },
         scales:{
@@ -1128,7 +1128,7 @@ async function plotTide24h(){
     let showRestrictions = false;
     if(stationCfg.computeSpeed){
       const info = speedPossibleForStationWaterLevel(stationCfg.name, last.y);
-      speedLine = (!info || info.speed==null) ? "Vitesse possible: —" : `Vitesse possible: ${info.speed} nd (Prof. ${info.prof.toFixed(1)})`;
+      speedLine = (!info || info.speed==null) ? "Vitesse possible: —" : `Vitesse possible: ${info.speed} nds (Prof. ${info.prof.toFixed(1)})`;
       showRestrictions = (!info || info.speed == null || info.speed < 7);
     }
 
@@ -1358,5 +1358,6 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
 
 
