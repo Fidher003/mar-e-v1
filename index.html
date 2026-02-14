@@ -41,7 +41,7 @@ h1{margin:0}
   border-radius:var(--radius);
   overflow:hidden;
 }
-  /* 🔧 FIX largeur bouton marée */
+/* 🔧 FIX largeur bouton marée */
 #plotTide{
   width: fit-content;
   align-self: flex-start;
@@ -186,6 +186,11 @@ canvas{ touch-action:none; }
 .trend.up{ color: #34d399; }
 .trend.down{ color: #fb7185; }
 .trend.flat{ color: #cbd5e1; }
+
+/* ✅ PATCH 1: Badge vitesse observation (à droite de l'observation) */
+.obsSpeedBadge{ display:none; }
+.obsDotBlue{ background: rgba(106,169,255,.95) !important; }
+#obsSpeedProf{ margin-left:6px; }
 
 /* ✅ Controls marée: mobile-friendly */
 .tideControls{
@@ -375,6 +380,18 @@ canvas{ touch-action:none; }
                   <span class="obsDot"></span>
                   <span class="obsValue" id="obsBadgeValue">—</span>
                   <span class="trend flat" id="obsTrend" aria-label="Tendance">—</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ✅ PATCH 1: Nouveau badge "Vitesse (obs)" à droite de l'observation -->
+            <div class="obsBadge obsSpeedBadge" id="obsSpeedBadge" title="Vitesse possible selon l'observation">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <div class="obsTitle">Vitesse (obs)</div>
+                <div class="obsValueRow">
+                  <span class="obsDot obsDotBlue"></span>
+                  <span class="obsValue" id="obsSpeedValue">—</span>
+                  <span class="muted small" id="obsSpeedProf">—</span>
                 </div>
               </div>
             </div>
@@ -663,6 +680,15 @@ function showObsBadge(timeLabel, value, trendKind){
 }
 function hideObsBadge(){ el("obsBadge").style.display = "none"; }
 
+/* ✅ PATCH 1: fonctions badge vitesse observation */
+function showObsSpeedBadge(speed, prof){
+  const b = el("obsSpeedBadge");
+  b.style.display = "inline-flex";
+  el("obsSpeedValue").textContent = (speed == null) ? "—" : `${speed} nd`;
+  el("obsSpeedProf").textContent  = (prof  == null) ? "—" : `Prof. ${Number(prof).toFixed(1)}`;
+}
+function hideObsSpeedBadge(){ el("obsSpeedBadge").style.display = "none"; }
+
 function computeTrend(wloPts){
   if(!Array.isArray(wloPts) || wloPts.length < 3) return "flat";
   const vs = wloPts.map(p=>p.v).filter(Number.isFinite);
@@ -913,20 +939,24 @@ async function plotTide24h(){
   setTideStatus("Chargement…");
   hidePinnedBox();
   hideObsBadge();
+  hideObsSpeedBadge(); // ✅ PATCH 1: cache le badge vitesse
   setStatus("neutral","Chargement marée…");
 
   try{
     const stationId = await resolveStationId(stationCfg.id);
 
-    const now = new Date();
-    const to  = new Date(now.getTime() + TIDE_HOURS*60*60*1000);
-    const {from, to:toIso} = toApiRange(now, to);
+    // ✅ PATCH 2: le graphique commence 5 minutes après l'heure de demande
+    const requestNow = new Date(); // heure de demande (obs)
+    const graphStart = new Date(requestNow.getTime() + 5*60*1000); // +5 min (début du graphe)
 
-    const obsTo = new Date(now.getTime());
-    const obsFrom = new Date(now.getTime() - 10*60*1000);
+    const to  = new Date(graphStart.getTime() + TIDE_HOURS*60*60*1000);
+    const {from, to:toIso} = toApiRange(graphStart, to);
+
+    const obsTo = new Date(requestNow.getTime());
+    const obsFrom = new Date(requestNow.getTime() - 10*60*1000);
     const {from:obsFromIso, to:obsToIso} = toApiRange(obsFrom, obsTo);
 
-    tideTicks = build2hTicks(now.getTime(), TIDE_HOURS);
+    tideTicks = build2hTicks(graphStart.getTime(), TIDE_HOURS);
     tideDateLabel = formatDM(new Date(tideTicks[0]));
 
     const [baseData, wloData] = await Promise.allSettled([
@@ -945,6 +975,7 @@ async function plotTide24h(){
     if(!pts.length){
       setTideStatus("Aucune donnée");
       if(tideChart){ tideChart.destroy(); tideChart=null; }
+      hideObsSpeedBadge(); // ✅ PATCH 1
       setStatus("warn","Aucune donnée");
       return;
     }
@@ -961,13 +992,27 @@ async function plotTide24h(){
       .map(d => ({ t: d.eventDate, v: +d.value }))
       .filter(d => d.t && Number.isFinite(d.v))
       .sort((a,b) => new Date(a.t) - new Date(b.t));
+
     if(wloPts.length){
       const lastObs = wloPts[wloPts.length-1];
       const dtObs = new Date(lastObs.t);
       const trend = computeTrend(wloPts);
       showObsBadge(formatHM(dtObs), lastObs.v, trend);
+
+      // ✅ PATCH 1: vitesse possible selon l'observation (même calcul que le graphique)
+      if(stationCfg.computeSpeed){
+        const infoObs = speedPossibleForStationWaterLevel(stationCfg.name, lastObs.v);
+        if(infoObs && infoObs.speed != null){
+          showObsSpeedBadge(infoObs.speed, infoObs.prof);
+        }else{
+          showObsSpeedBadge(null, null);
+        }
+      }else{
+        hideObsSpeedBadge();
+      }
     }else{
       hideObsBadge();
+      hideObsSpeedBadge();
     }
 
     const xMin = tideTicks[0];
@@ -1256,6 +1301,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(tideChart){ tideChart.destroy(); tideChart=null; }
     hidePinnedBox();
     hideObsBadge();
+    hideObsSpeedBadge(); // ✅ PATCH 1: reset badge vitesse
     el("restrMeta").textContent="—";
     el("restrBody").innerHTML = `<tr><td colspan="6" class="muted">Aucun calcul</td></tr>`;
     updateSquat();
