@@ -175,9 +175,13 @@ canvas{ touch-action:none; }
   border-radius:14px;
   background:rgba(0,0,0,.18);
   min-height: 40px;
-  width:100%;
-  max-width:100%;
+
+  /* ✅ largeur minimale */
+  width: fit-content;
+  max-width: 100%;
+  white-space: nowrap;
 }
+
 .obsTitle{font-weight:900;font-size:12px;color:var(--muted);line-height:1}
 .obsValueRow{display:flex;align-items:center;gap:8px}
 .obsDot{width:8px;height:8px;border-radius:50%;background:rgba(255,80,100,.95)}
@@ -221,7 +225,7 @@ canvas{ touch-action:none; }
   .tideControls{ grid-template-columns: 1fr; }
   .tideRight{ justify-content:flex-start; width:100%; }
   #plotTide{ width: fit-content; display:inline-flex; flex: 0 0 auto; }
-  .obsBadge{ width:100%; }
+  .obsBadge{ width: fit-content; max-width: 100%; }
 
   /* ✅ Bouton réduit en mobile (hauteur/texte) */
   #plotTide{
@@ -389,7 +393,7 @@ canvas{ touch-action:none; }
               <div style="display:flex;flex-direction:column;gap:4px">
                 <div class="obsTitle">Vitesse (obs)</div>
                 <div class="obsValueRow">
-                  <span class="obsDot obsDotBlue"></span>
+                 <span class="obsDot"></span>
                   <span class="obsValue" id="obsSpeedValue">—</span>
                   <span class="muted small" id="obsSpeedProf">—</span>
                 </div>
@@ -1314,3 +1318,4 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
