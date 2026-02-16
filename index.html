@@ -41,6 +41,7 @@ h1{margin:0}
   border-radius:var(--radius);
   overflow:hidden;
 }
+
 /* 🔧 FIX largeur bouton marée */
 #plotTide{
   width: fit-content;
@@ -176,7 +177,6 @@ canvas{ touch-action:none; }
   background:rgba(0,0,0,.18);
   min-height: 40px;
 
-  /* ✅ largeur minimale */
   width: fit-content;
   max-width: 100%;
   white-space: nowrap;
@@ -191,12 +191,9 @@ canvas{ touch-action:none; }
 .trend.down{ color: #fb7185; }
 .trend.flat{ color: #cbd5e1; }
 
-/* ✅ PATCH 1: Badge vitesse observation (à droite de l'observation) */
 .obsSpeedBadge{ display:none; }
-.obsDotBlue{ background: rgba(106,169,255,.95) !important; }
 #obsSpeedProf{ margin-left:6px; }
 
-/* ✅ Controls marée: mobile-friendly */
 .tideControls{
   display: grid;
   grid-template-columns: 1fr;
@@ -204,7 +201,6 @@ canvas{ touch-action:none; }
   align-items: start;
 }
 
-  /* Organisation bouton + badges sur 2 lignes */
 .tideRight{
   display:flex;
   flex-direction:column;
@@ -212,9 +208,7 @@ canvas{ touch-action:none; }
   align-items:flex-start;
 }
 
-.tideButtonRow{
-  width:100%;
-}
+.tideButtonRow{ width:100%; }
 
 .tideBadgeRow{
   display:flex;
@@ -223,30 +217,21 @@ canvas{ touch-action:none; }
   align-items:center;
 }
 
-.tideRight{
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  width: auto;        /* ← important */
-}
-
 #plotTide{
-  width: auto;              /* empêche full-width */
+  width: auto;
   min-width: unset;
-  padding: 6px 14px;        /* plus compact */
+  padding: 6px 14px;
   font-size: 14px;
   border-radius: 12px;
   white-space: nowrap;
 }
+
 @media(max-width:520px){
   .tideControls{ grid-template-columns: 1fr; }
   .tideRight{ justify-content:flex-start; width:100%; }
   #plotTide{ width: fit-content; display:inline-flex; flex: 0 0 auto; }
   .obsBadge{ width: fit-content; max-width: 100%; }
 
-  /* ✅ Bouton réduit en mobile (hauteur/texte) */
   #plotTide{
     padding: 6px 10px;
     border-radius: 12px;
@@ -262,7 +247,7 @@ canvas{ touch-action:none; }
 }
 .squatTable th,.squatTable td{
   text-align:center;
-  padding: 2px 3px;                 /* compact */
+  padding: 2px 3px;
   border-bottom: 1px solid rgba(255,255,255,.10);
   background-clip: padding-box;
 }
@@ -293,7 +278,7 @@ canvas{ touch-action:none; }
 .squatTable tbody td{
   font-size: 14px;
   font-weight: 800;
-  min-width: 38px;                   /* narrow columns */
+  min-width: 38px;
 }
 .squatTable thead th + th{ border-left: 1px solid var(--sep); }
 .squatTable tbody th + td{ border-left: 1px solid var(--sep); }
@@ -393,53 +378,36 @@ canvas{ touch-action:none; }
             <select id="tideStation"></select>
           </div>
 
-<div class="tideRight">
+          <div class="tideRight">
+            <div class="tideButtonRow">
+              <button id="plotTide">Générer courbe marée</button>
+            </div>
 
-  <!-- Ligne 1 : bouton -->
-  <div class="tideButtonRow">
-    <button id="plotTide">Générer courbe marée</button>
-  </div>
+            <div class="tideBadgeRow">
+              <div class="obsBadge" id="obsBadge" title="Observation wlo (10 minutes)">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <div class="obsTitle" id="obsBadgeTitle">Observation (—)</div>
+                  <div class="obsValueRow">
+                    <span class="obsDot"></span>
+                    <span class="obsValue" id="obsBadgeValue">—</span>
+                    <span class="trend flat" id="obsTrend">—</span>
+                  </div>
+                </div>
+              </div>
 
-  <!-- Ligne 2 : badges -->
-  <div class="tideBadgeRow">
-    <div class="obsBadge" id="obsBadge" title="Observation wlo (10 minutes)">
-      <div style="display:flex;flex-direction:column;gap:4px">
-        <div class="obsTitle" id="obsBadgeTitle">Observation (—)</div>
-        <div class="obsValueRow">
-          <span class="obsDot"></span>
-          <span class="obsValue" id="obsBadgeValue">—</span>
-          <span class="trend flat" id="obsTrend">—</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="obsBadge obsSpeedBadge" id="obsSpeedBadge" title="Vitesse possible selon l'observation">
-      <div style="display:flex;flex-direction:column;gap:4px">
-        <div class="obsTitle">Vitesse Max</div>
-        <div class="obsValueRow">
-          <span class="obsDot"></span>
-          <span class="obsValue" id="obsSpeedValue">—</span>
-          <span class="muted small" id="obsSpeedProf">—</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-
-            <!-- ✅ PATCH 1: Nouveau badge "Vitesse (obs)" à droite de l'observation -->
-            <div class="obsBadge obsSpeedBadge" id="obsSpeedBadge" title="Vitesse possible selon l'observation">
-              <div style="display:flex;flex-direction:column;gap:4px">
-                <div class="obsTitle">Vitesse (obs)</div>
-                <div class="obsValueRow">
-                 <span class="obsDot"></span>
-                  <span class="obsValue" id="obsSpeedValue">—</span>
-                  <span class="muted small" id="obsSpeedProf">—</span>
+              <div class="obsBadge obsSpeedBadge" id="obsSpeedBadge" title="Vitesse possible selon l'observation">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <div class="obsTitle">Vitesse possible</div>
+                  <div class="obsValueRow">
+                    <span class="obsDot"></span>
+                    <span class="obsValue" id="obsSpeedValue">—</span>
+                    <span class="muted small" id="obsSpeedProf">—</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+
         </div>
 
         <div class="chartWrap">
@@ -475,14 +443,13 @@ canvas{ touch-action:none; }
               <tr>
                 <th>Station</th>
                 <th>Prof. (m)</th>
-                <th>Limite (m)</th>
-                <th>Statut</th>
                 <th>Interdictions</th>
+                <th>Limite (m)</th>
                 <th>Tirant max</th>
               </tr>
             </thead>
             <tbody id="restrBody">
-              <tr><td colspan="6" class="muted">Aucun calcul</td></tr>
+              <tr><td colspan="5" class="muted">Aucun calcul</td></tr>
             </tbody>
           </table>
         </div>
@@ -605,8 +572,8 @@ function niceCeil(x, step){ return Math.ceil(x / step) * step; }
 
 function getInputsShared(){
   const vessel = el("vessel").value;
-  const largeur = Number(String(el("largeur").value).replace(",","."));
-  const draft = Number(String(el("tirant").value).replace(",","."));
+  const largeur = Number(String(el("largeur").value).replace(",",".")); 
+  const draft = Number(String(el("tirant").value).replace(",",".")); 
   const dateStr = el("date").value;
   return { vessel, largeur, draft, dateStr };
 }
@@ -665,7 +632,6 @@ function updateSquat(){
   tbody += "</tbody>";
   tableEl.innerHTML = thead + tbody;
 
-  // ✅ AJOUT: mise à jour de la ligne rouge si une courbe est déjà affichée
   if(tideChart && currentTideStationCfg?.computeSpeed && squatCache?.required){
     const prof = stationProf(currentTideStationCfg.name);
     const col = closestProfCol(prof);
@@ -724,7 +690,6 @@ function showObsBadge(timeLabel, value, trendKind){
 }
 function hideObsBadge(){ el("obsBadge").style.display = "none"; }
 
-/* ✅ PATCH 1: fonctions badge vitesse observation */
 function showObsSpeedBadge(speed, prof){
   const b = el("obsSpeedBadge");
   b.style.display = "inline-flex";
@@ -808,7 +773,6 @@ const dateLabelPlugin = {
   }
 };
 
-// ✅ AJOUT: ligne rouge + label "Limite 7 nds"
 const limitLinePlugin = {
   id: "limitLinePlugin",
   afterDraw(chart, args, opts){
@@ -824,7 +788,6 @@ const limitLinePlugin = {
 
     const {ctx} = chart;
 
-    // Ligne
     ctx.save();
     ctx.beginPath();
     ctx.strokeStyle = "rgba(255,80,100,.95)";
@@ -834,8 +797,7 @@ const limitLinePlugin = {
     ctx.lineTo(area.right, yPix);
     ctx.stroke();
 
-    // Label
-    const label = opts?.label || "Limite 7 nds";
+    const label = opts?.label || "7 nds";
     ctx.font = "12px ui-monospace, Menlo, Consolas, monospace";
     ctx.textBaseline = "bottom";
 
@@ -844,13 +806,10 @@ const limitLinePlugin = {
     const boxW = textW + 10;
     const boxH = 18;
 
-    // position: en haut de la ligne, côté gauche
     let x = area.left + padX;
     let y = yPix - 4;
-    // si trop haut, on met en dessous
     if(y - boxH < area.top) y = yPix + boxH;
 
-    // petit fond pour lisibilité
     ctx.fillStyle = "rgba(0,0,0,.55)";
     ctx.strokeStyle = "rgba(255,255,255,.14)";
     ctx.lineWidth = 1;
@@ -862,7 +821,6 @@ const limitLinePlugin = {
     ctx.fill();
     ctx.stroke();
 
-    // texte
     ctx.fillStyle = "rgba(255,160,170,.98)";
     ctx.fillText(label, x, y - 4);
 
@@ -975,7 +933,6 @@ async function plotTide24h(){
   const stationCfg = STATION_OPTIONS.find(s => s.name === stationName);
   if(!stationCfg) return;
 
-  // ✅ AJOUT: mémoriser la station affichée (pour updateSquat)
   currentTideStationCfg = stationCfg;
 
   const btn = el("plotTide");
@@ -983,15 +940,14 @@ async function plotTide24h(){
   setTideStatus("Chargement…");
   hidePinnedBox();
   hideObsBadge();
-  hideObsSpeedBadge(); // ✅ PATCH 1: cache le badge vitesse
+  hideObsSpeedBadge();
   setStatus("neutral","Chargement marée…");
 
   try{
     const stationId = await resolveStationId(stationCfg.id);
 
-    // ✅ PATCH 2: le graphique commence 5 minutes après l'heure de demande
-    const requestNow = new Date(); // heure de demande (obs)
-    const graphStart = new Date(requestNow.getTime() + 5*60*1000); // +5 min (début du graphe)
+    const requestNow = new Date();
+    const graphStart = new Date(requestNow.getTime() + 5*60*1000);
 
     const to  = new Date(graphStart.getTime() + TIDE_HOURS*60*60*1000);
     const {from, to:toIso} = toApiRange(graphStart, to);
@@ -1019,12 +975,11 @@ async function plotTide24h(){
     if(!pts.length){
       setTideStatus("Aucune donnée");
       if(tideChart){ tideChart.destroy(); tideChart=null; }
-      hideObsSpeedBadge(); // ✅ PATCH 1
+      hideObsSpeedBadge();
       setStatus("warn","Aucune donnée");
       return;
     }
 
-    /* ✅ Pont de Québec: y = 53.1 - valeur API */
     const series = pts.map(p => {
       const x = new Date(p.t).getTime();
       const apiVal = p.v;
@@ -1043,14 +998,10 @@ async function plotTide24h(){
       const trend = computeTrend(wloPts);
       showObsBadge(formatHM(dtObs), lastObs.v, trend);
 
-      // ✅ PATCH 1: vitesse possible selon l'observation (même calcul que le graphique)
       if(stationCfg.computeSpeed){
         const infoObs = speedPossibleForStationWaterLevel(stationCfg.name, lastObs.v);
-        if(infoObs && infoObs.speed != null){
-          showObsSpeedBadge(infoObs.speed, infoObs.prof);
-        }else{
-          showObsSpeedBadge(null, null);
-        }
+        if(infoObs && infoObs.speed != null) showObsSpeedBadge(infoObs.speed, infoObs.prof);
+        else showObsSpeedBadge(null, null);
       }else{
         hideObsSpeedBadge();
       }
@@ -1066,13 +1017,11 @@ async function plotTide24h(){
     const yMinData = Math.min(...ys);
     const yMaxData = Math.max(...ys);
 
-    /* ✅ Axe Y spécial pour Pont de Québec: 45 à 55, pas de 1 m */
     const isPont = (stationCfg.name === "Pont de Québec");
     const yMinAxis = isPont ? 45 : ((yMinData < 0) ? -0.5 : 0);
     const yMaxAxisPadded = isPont ? 55 : Math.max(niceCeil(yMaxData, 1), yMinAxis + 2);
     const yStep = isPont ? 1 : ((yMinAxis < 0) ? 0.5 : 1);
 
-    // ✅ AJOUT: Limite marée pour 7 nd (ligne rouge)
     let limit7 = null;
     if(stationCfg.computeSpeed && squatCache?.required){
       const prof = stationProf(stationCfg.name);
@@ -1100,8 +1049,6 @@ async function plotTide24h(){
         plugins:{
           legend:{ labels:{ color:"#e7ecff"} },
           tooltip:{ enabled:false },
-
-          // ✅ AJOUT: config de la ligne rouge + label
           limitLinePlugin: { y: limit7, label: "7 nds" }
         },
         elements:{ point:{ radius:0, hoverRadius:4, hitRadius:12 } },
@@ -1128,7 +1075,9 @@ async function plotTide24h(){
     let showRestrictions = false;
     if(stationCfg.computeSpeed){
       const info = speedPossibleForStationWaterLevel(stationCfg.name, last.y);
-      speedLine = (!info || info.speed==null) ? "Vitesse possible: —" : `Vitesse possible: ${info.speed} nds (Prof. ${info.prof.toFixed(1)})`;
+      speedLine = (!info || info.speed==null)
+        ? "Vitesse possible: —"
+        : `Vitesse possible: ${info.speed} nds (Prof. ${info.prof.toFixed(1)})`;
       showRestrictions = (!info || info.speed == null || info.speed < 7);
     }
 
@@ -1215,16 +1164,16 @@ async function runRestrictions(){
 
   const { vessel, largeur, draft, dateStr } = getInputsShared();
   const tbody = el("restrBody");
-  tbody.innerHTML = `<tr><td colspan="6" class="muted">Calcul en cours…</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="5" class="muted">Calcul en cours…</td></tr>`;
 
   if(!dateStr){
-    tbody.innerHTML = `<tr><td colspan="6" class="muted">Veuillez choisir une date.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="muted">Veuillez choisir une date.</td></tr>`;
     setStatus("warn","Date manquante");
     btn.disabled = false;
     return;
   }
   if(!Number.isFinite(largeur) || !Number.isFinite(draft)){
-    tbody.innerHTML = `<tr><td colspan="6" class="muted">Entrées invalides (largeur/tirant).</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="muted">Entrées invalides (largeur/tirant).</td></tr>`;
     setStatus("warn","Entrées invalides");
     btn.disabled = false;
     return;
@@ -1263,12 +1212,12 @@ async function runRestrictions(){
           .map(d => ({ eventDate: d.eventDate, value: +d.value }))
           .sort((a,b) => new Date(a.eventDate) - new Date(b.eventDate));
       }catch(e){
-        rows.push({ station:s.name, prof, limit, statut:`Erreur API`, interdits:`—`, tirantMax:`—`, cls:"restRowBad" });
+        rows.push({ station:s.name, prof, limit, interdits:`—`, tirantMax:`—`, cls:"restRowBad" });
         continue;
       }
 
       if(!data.length){
-        rows.push({ station:s.name, prof, limit, statut:`Aucune donnée`, interdits:`—`, tirantMax:`—`, cls:"" });
+        rows.push({ station:s.name, prof, limit, interdits:`—`, tirantMax:`—`, cls:"" });
         continue;
       }
 
@@ -1278,7 +1227,7 @@ async function runRestrictions(){
 
       if(vmax < limit){
         const tirantMax = vmax + prof - dsqR;
-        rows.push({ station:s.name, prof, limit, statut:`Niveau insuffisant`, interdits:`—`, tirantMax:`${tirantMax.toFixed(2)} m`, cls:"restRowBad" });
+        rows.push({ station:s.name, prof, limit, interdits:`—`, tirantMax:`${tirantMax.toFixed(2)} m`, cls:"restRowBad" });
         continue;
       }
 
@@ -1287,7 +1236,7 @@ async function runRestrictions(){
       if(!intervals.length){
         const tirantMax = vmin + prof - dsqR;
         const near = (vmin >= limit) && (vmin <= limit + 0.1);
-        rows.push({ station:s.name, prof, limit, statut: near ? `OK (proche)` : `OK`, interdits:`—`, tirantMax:`${tirantMax.toFixed(2)} m`, cls: near ? "restRowWarn" : "" });
+        rows.push({ station:s.name, prof, limit, interdits:`—`, tirantMax:`${tirantMax.toFixed(2)} m`, cls: near ? "restRowWarn" : "" });
         continue;
       }
 
@@ -1300,16 +1249,15 @@ async function runRestrictions(){
 
       const tirantMax = vmin + prof - dsqR;
 
-      rows.push({ station:s.name, prof, limit, statut:`Restrictions`, interdits:list, tirantMax:`${tirantMax.toFixed(2)} m`, cls:"restRowBad" });
+      rows.push({ station:s.name, prof, limit, interdits:list, tirantMax:`${tirantMax.toFixed(2)} m`, cls:"restRowBad" });
     }
 
     tbody.innerHTML = rows.map(r => `
       <tr class="${r.cls||""}">
         <td><strong>${r.station}</strong></td>
         <td class="mono">${Number(r.prof).toFixed(1)}</td>
-        <td class="mono">${Number(r.limit).toFixed(3)}</td>
-        <td>${r.statut}</td>
         <td class="mono">${r.interdits}</td>
+        <td class="mono">${Number(r.limit).toFixed(3)}</td>
         <td class="mono">${r.tirantMax}</td>
       </tr>
     `).join("");
@@ -1317,7 +1265,7 @@ async function runRestrictions(){
     setStatus("ok","OK");
   }catch(e){
     console.error(e);
-    tbody.innerHTML = `<tr><td colspan="6" class="muted">Erreur: ${String(e.message||e)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="muted">Erreur: ${String(e.message||e)}</td></tr>`;
     setStatus("bad","Erreur");
   }finally{
     btn.disabled = false;
@@ -1334,7 +1282,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   tideSel.value = "Neuville";
 
   el("plotTide").addEventListener("click", plotTide24h);
-  el("runRestrictions").addEventListener("click", runRestrictions);  // ✅ FIX: bouton rebranché
+  el("runRestrictions").addEventListener("click", runRestrictions);
 
   el("vessel").addEventListener("change", updateSquat);
   el("largeur").addEventListener("input", updateSquat);
@@ -1345,9 +1293,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(tideChart){ tideChart.destroy(); tideChart=null; }
     hidePinnedBox();
     hideObsBadge();
-    hideObsSpeedBadge(); // ✅ PATCH 1: reset badge vitesse
+    hideObsSpeedBadge();
     el("restrMeta").textContent="—";
-    el("restrBody").innerHTML = `<tr><td colspan="6" class="muted">Aucun calcul</td></tr>`;
+    el("restrBody").innerHTML = `<tr><td colspan="5" class="muted">Aucun calcul</td></tr>`;
     updateSquat();
     setStatus("neutral","Prêt");
   });
@@ -1358,7 +1306,3 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
-
-
-
-
