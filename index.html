@@ -292,6 +292,18 @@ canvas{ touch-action:none; }
   min-width:900px;
   font-size:13px;
 }
+  /* ✅ PATCH: colonnes Station + Prof. au contenu (réduit la largeur) */
+.restTable{
+  table-layout: auto; /* s'assure que les colonnes suivent le contenu */
+}
+.restTable th:nth-child(1),
+.restTable td:nth-child(1),
+.restTable th:nth-child(2),
+.restTable td:nth-child(2){
+  width: 1%;
+  white-space: nowrap; /* empêche d'étirer/retourner à la ligne */
+}
+
 .restTable th,.restTable td{
   padding:10px;
   border-bottom:1px solid rgba(255,255,255,.10);
@@ -1306,3 +1318,4 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
+
