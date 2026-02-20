@@ -292,16 +292,14 @@ canvas{ touch-action:none; }
   min-width:900px;
   font-size:13px;
 }
-  /* ✅ PATCH: colonnes Station + Prof. au contenu (réduit la largeur) */
-.restTable{
-  table-layout: auto; /* s'assure que les colonnes suivent le contenu */
-}
+/* ✅ PATCH: colonnes Station + Prof. au contenu (réduit la largeur) */
+.restTable{ table-layout: auto; }
 .restTable th:nth-child(1),
 .restTable td:nth-child(1),
 .restTable th:nth-child(2),
 .restTable td:nth-child(2){
   width: 1%;
-  white-space: nowrap; /* empêche d'étirer/retourner à la ligne */
+  white-space: nowrap;
 }
 
 .restTable th,.restTable td{
@@ -523,10 +521,15 @@ function stationProf(st){
 /* ================= Restrictions dsqR (col 7) ================= */
 const TABLE_CONT_DsqR = {24:.79,26:.83,28:.84,30:.86,32:.87,34:.88,36:.89,38:.90,40:.91,42:.92,44:.93};
 const TABLE_AUT_DsqR  = {24:.80,26:.85,28:.86,30:.88,32:.89,34:.91,36:.93,38:.94,40:.96,42:.97,44:.99};
-function roundLargeurEvenAtLeast24(v){ return v < 24 ? 24 : Math.ceil(v/2)*2; }
 
-/* ================= Squat tables ================= */
-// Largeur (m) : 24..44 par pas de 2
+function roundLargeurEvenAtLeast24(v){
+  v = Number(v);
+  if(!Number.isFinite(v)) return 24;
+  if(v < 24) return 24;
+  return Math.ceil(v/2)*2;
+}
+
+/* ================= Squat tables (24–44m) ================= */
 const CONTENEUR_BY_BEAM = [
   [24, 0.79, 0.88, 0.96, 1.04, 1.22, 1.41, 1.63, 1.88, 2.17],
   [26, 0.83, 0.90, 0.98, 1.07, 1.25, 1.45, 1.68, 1.93, 2.23],
@@ -554,19 +557,21 @@ const AUTRES_BY_BEAM = [
   [42, 0.97, 1.08, 1.21, 1.36, 1.61, 1.88, 2.18, 2.51, 2.91],
   [44, 0.99, 1.10, 1.23, 1.39, 1.65, 1.93, 2.24, 2.57, 2.98],
 ];
-  const squatMapFromRows = (rows) => {
+
+const squatMapFromRows = (rows) => {
   const m = new Map();
-  for (const r of rows) m.set(r[0], r.slice(1));
+  for (const r of rows) m.set(r[0], r.slice(1)); // largeur -> [v7..v15]
   return m;
 };
-
 const CONT_MAP = squatMapFromRows(CONTENEUR_BY_BEAM);
 const AUT_MAP  = squatMapFromRows(AUTRES_BY_BEAM);
 
+// Si largeur > 44, on borne à 44 (sinon, change pour throw si tu préfères)
 function clampBeamToTable(b){
-  if(b > 44) return 44;
+  if(b > 44) throw new Error("Largeur > 44 m : hors table squat (24–44).");
   return b;
-}
+
+/* ================= Squat config ================= */
 const PROFS = [10.6, 10.7, 11.0, 11.3];
 const SPEEDS = [7,8,9,10,11,12,13,14,15];
 const HIGHLIGHT = new Set([8,10,12,14]);
@@ -599,31 +604,24 @@ function niceCeil(x, step){ return Math.ceil(x / step) * step; }
 
 function getInputsShared(){
   const vessel = el("vessel").value;
-  const largeur = Number(String(el("largeur").value).replace(",",".")); 
-  const draft = Number(String(el("tirant").value).replace(",",".")); 
+  const largeur = Number(String(el("largeur").value).replace(",","."));
+  const draft = Number(String(el("tirant").value).replace(",","."));
   const dateStr = el("date").value;
   return { vessel, largeur, draft, dateStr };
 }
 
-function vlookupApprox(x, table) {
-  let idx = 0;
-  for (let i = 0; i < table.length; i++) {
-    if (table[i][0] <= x) idx = i;
-    else break;
-  }
-  return table[idx];
-}
-
 /* ================= Squat compute + render ================= */
 let squatCache = null;
+
+// ✅ AJOUT: pour mettre à jour la ligne rouge quand squat change
+let currentTideStationCfg = null;
 
 function computeSquatRequired(shipKey, beam, draft){
   let b = roundLargeurEvenAtLeast24(beam);
   b = clampBeamToTable(b);
 
   const map = (shipKey === "CONTENEUR") ? CONT_MAP : AUT_MAP;
-  const row = map.get(b);
-
+  const row = map.get(b); // row = [v7..v15]
   if(!row) throw new Error(`Largeur ${b} non disponible dans la table squat (24–44).`);
 
   const required = {};
@@ -635,16 +633,28 @@ function computeSquatRequired(shipKey, beam, draft){
   });
 
   return { required, beamRounded: b };
-}eturn required;
 }
 
 function updateSquat(){
-  const { required, beamRounded } = computeSquatRequired(shipKey, largeur, draft);
+  const { vessel, largeur, draft } = getInputsShared();
+  if(!Number.isFinite(largeur) || !Number.isFinite(draft)) return;
 
-squatCache = { shipKey, largeur, draft, required };
+  const shipKey = (vessel === "Conteneur") ? "CONTENEUR" : "AUTRES";
 
-el("squatMeta").textContent =
-  `${shipKey} • Largeur ${largeur.toFixed(2)} m (arr. ${beamRounded}) • Draft ${draft.toFixed(2)} m`;
+  let required, beamRounded;
+  try{
+    ({ required, beamRounded } = computeSquatRequired(shipKey, largeur, draft));
+  }catch(e){
+    console.error(e);
+    el("squatMeta").textContent = `Erreur squat: ${String(e.message || e)}`;
+    el("resultTable").innerHTML = "";
+    return;
+  }
+
+  squatCache = { shipKey, largeur, draft, required };
+
+  el("squatMeta").textContent =
+    `${shipKey} • Largeur ${largeur.toFixed(2)} m (arr. ${beamRounded}) • Draft ${draft.toFixed(2)} m`;
 
   const tableEl = el("resultTable");
   let thead = "<thead><tr><th>Vitesse</th>";
@@ -661,6 +671,7 @@ el("squatMeta").textContent =
   tbody += "</tbody>";
   tableEl.innerHTML = thead + tbody;
 
+  // MAJ ligne rouge si chart déjà présent
   if(tideChart && currentTideStationCfg?.computeSpeed && squatCache?.required){
     const prof = stationProf(currentTideStationCfg.name);
     const col = closestProfCol(prof);
@@ -747,9 +758,6 @@ const TIDE_HOURS = 24;
 let tideChart = null;
 let tideTicks = [];
 let tideDateLabel = "";
-
-// ✅ AJOUT: pour mettre à jour la ligne rouge quand squat change
-let currentTideStationCfg = null;
 
 function setTideStatus(text){ el("tideStatus").textContent = text; }
 
@@ -1335,5 +1343,3 @@ document.addEventListener("DOMContentLoaded",()=>{
 </script>
 </body>
 </html>
-
-
