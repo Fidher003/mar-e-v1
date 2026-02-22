@@ -210,6 +210,7 @@ canvas{ touch-action:none; }
   border-radius: 12px;
   white-space: nowrap;
 }
+
 /* =================== MÉTÉO MARINE (module) =================== */
 .marineTopBar{
   display:flex;
@@ -290,7 +291,7 @@ canvas{ touch-action:none; }
 
 .marineText{
   margin:0;
-  white-space: pre-line; /* important pour afficher les retours de ligne */
+  white-space: pre-line;
   line-height:1.55;
 }
 
@@ -303,6 +304,7 @@ canvas{ touch-action:none; }
   flex-wrap:wrap;
   gap:10px;
 }
+
 /* =================== SQUAT TABLE =================== */
 .squatTable{
   border-collapse: separate;
@@ -499,6 +501,47 @@ canvas{ touch-action:none; }
       </div>
     </section>
 
+    <!-- MÉTÉO MARINE -->
+    <section class="card">
+      <div class="hd">
+        <span>Prévisions marines</span>
+        <span class="hdRight muted small" id="marineStatus">—</span>
+      </div>
+
+      <div class="bd grid">
+        <div class="marineTopBar">
+          <div class="marineTabs" id="marineTabs">
+            <button class="marineTab" data-key="MTL_TR">MTL-TR</button>
+            <button class="marineTab" data-key="TR_DON">TR-DON</button>
+            <button class="marineTab" data-key="DON_BEA">DON-BEA</button>
+            <button class="marineTab active" data-key="BEA_TAC">BEA-TAC</button>
+          </div>
+
+          <div class="marineLang">
+            <button id="marineLangEN" class="secondary">EN</button>
+            <button id="marineLangFR">FR</button>
+          </div>
+        </div>
+
+        <div class="marineBody">
+          <div class="marineSub">
+            <div>Environnement Canada <span class="marineArea" id="marineArea">—</span></div>
+            <div class="mono" id="marineClock">—</div>
+          </div>
+
+          <div class="marineBox">
+            <p class="marineIssued" id="marineIssued">Émis: —</p>
+            <p class="marineText" id="marineText">—</p>
+          </div>
+
+          <div class="marineFoot">
+            <span class="muted">Source: météo marine (RSS)</span>
+            <button class="secondary" id="marineRefresh">Rafraîchir</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- RESTRICTIONS -->
     <section class="card">
       <div class="hd">
@@ -632,7 +675,7 @@ function squatMapFromRows(rows){
   const m = new Map();
   for (let i=0;i<rows.length;i++){
     const r = rows[i];
-    m.set(r[0], r.slice(1)); // largeur -> [v7..v15]
+    m.set(r[0], r.slice(1));
   }
   return m;
 }
@@ -680,7 +723,7 @@ function getInputsShared(){
 
 /* ================= Squat compute + render ================= */
 let squatCache = null;
-let currentTideStationCfg = null; // pour ligne rouge
+let currentTideStationCfg = null;
 
 function computeSquatRequired(shipKey, beam, draft){
   let b = roundLargeurEvenAtLeast24(beam);
@@ -765,7 +808,6 @@ function updateSquat(){
 
   el("resultTable").innerHTML = thead + tbody;
 
-  // MAJ ligne rouge si chart présent
   if(tideChart && currentTideStationCfg && currentTideStationCfg.computeSpeed && squatCache && squatCache.required){
     const prof = stationProf(currentTideStationCfg.name);
     const col = closestProfCol(prof);
@@ -906,7 +948,6 @@ const dateLabelPlugin = {
 };
 
 function roundRectFallback(ctx, x,y,w,h,r){
-  // fallback simple si roundRect pas disponible
   if(typeof ctx.roundRect === "function"){
     ctx.roundRect(x,y,w,h,r);
     return;
@@ -1082,7 +1123,6 @@ async function plotTide24h(){
     tideTicks = build2hTicks(graphStart.getTime(), TIDE_HOURS);
     tideDateLabel = formatDM(new Date(tideTicks[0]));
 
-    // pas de Promise.allSettled: on catch séparément
     let baseArr = [];
     try{
       const baseRaw = await fetchIWLSData(stationId, range.from, range.to, "wlf-spine");
@@ -1205,13 +1245,11 @@ async function plotTide24h(){
 
     bindPinnedHover(canvas, tideChart, stationCfg);
 
-    // pin sur le dernier point
-    const last = series[series.length-1];
     tideChart.setActiveElements([{datasetIndex:0, index: series.length-1}]);
     tideChart.update("none");
-    // met à jour le pinned
-    const idxLast = series.length-1;
+
     (function(){
+      const idxLast = series.length-1;
       const dt = new Date(series[idxLast].x);
       const valueLabel = (stationCfg.kind === "clearance") ? "Dégagement" : "Marée";
       const tideLine = valueLabel + ": " + series[idxLast].y.toFixed(3) + " m";
@@ -1245,46 +1283,7 @@ async function plotTide24h(){
     btn.disabled = false;
   }
 }
-<!-- MÉTÉO MARINE -->
-<section class="card">
-  <div class="hd">
-    <span>Prévisions marines</span>
-    <span class="hdRight muted small" id="marineStatus">—</span>
-  </div>
 
-  <div class="bd grid">
-    <div class="marineTopBar">
-      <div class="marineTabs" id="marineTabs">
-        <button class="marineTab" data-key="MTL_TR">MTL-TR</button>
-        <button class="marineTab" data-key="TR_DON">TR-DON</button>
-        <button class="marineTab" data-key="DON_BEA">DON-BEA</button>
-        <button class="marineTab active" data-key="BEA_TAC">BEA-TAC</button>
-      </div>
-
-      <div class="marineLang">
-        <button id="marineLangEN" class="secondary">EN</button>
-        <button id="marineLangFR">FR</button>
-      </div>
-    </div>
-
-    <div class="marineBody">
-      <div class="marineSub">
-        <div>Environnement Canada <span class="marineArea" id="marineArea">—</span></div>
-        <div class="mono" id="marineClock">—</div>
-      </div>
-
-      <div class="marineBox">
-        <p class="marineIssued" id="marineIssued">Émis: —</p>
-        <p class="marineText" id="marineText">—</p>
-      </div>
-
-      <div class="marineFoot">
-        <span class="muted">Source: météo marine (RSS)</span>
-        <button class="secondary" id="marineRefresh">Rafraîchir</button>
-      </div>
-    </div>
-  </div>
-</section>
 /* ================= Restrictions ================= */
 function computeIntervals(data, limit){
   const intervals = [];
@@ -1384,7 +1383,6 @@ async function runRestrictions(){
 
     const stations = STATION_OPTIONS.filter(s => s.allowRestrictions);
 
-    // resolve stations
     const resolved = [];
     for(let i=0;i<stations.length;i++){
       const s = stations[i];
@@ -1470,81 +1468,33 @@ async function runRestrictions(){
   }
 }
 
-/* ================= INIT ================= */
-document.addEventListener("DOMContentLoaded", function(){
-  dbg("INIT DOMContentLoaded OK");
-
-  // date du jour (YYYY-MM-DD)
-  const n = new Date();
-  const yyyy = n.getFullYear();
-  const mm = String(n.getMonth()+1).padStart(2,"0");
-  const dd = String(n.getDate()).padStart(2,"0");
-  el("date").value = yyyy + "-" + mm + "-" + dd;
-
-  // stations
-  const tideSel = el("tideStation");
-  tideSel.innerHTML = STATION_OPTIONS.map(s => '<option value="'+s.name+'">'+s.name+'</option>').join("");
-  tideSel.value = "Neuville";
-
-  el("plotTide").addEventListener("click", plotTide24h);
-  el("runRestrictions").addEventListener("click", runRestrictions);
-
-  el("vessel").addEventListener("change", updateSquat);
-  el("largeur").addEventListener("input", updateSquat);
-  el("tirant").addEventListener("input", updateSquat);
-
-  el("clear").addEventListener("click", function(){
-    el("tideStatus").textContent="—";
-    if(tideChart){ tideChart.destroy(); tideChart=null; }
-    hidePinnedBox();
-    hideObsBadge();
-    hideObsSpeedBadge();
-    el("restrMeta").textContent="—";
-    el("restrBody").innerHTML = '<tr><td colspan="5" class="muted">Aucun calcul</td></tr>';
-    updateSquat();
-    setStatus("neutral","Prêt");
-  });
-  initMarineModule();
-  updateSquat();
-  setStatus("neutral","Prêt");
-});
-
-  /* ================= MÉTÉO MARINE (RSS) =================
-   Note: nécessite souvent d’être servi via http://localhost (CORS).
-*/
+/* ================= MÉTÉO MARINE (RSS) ================= */
 const MARINE_AREAS = {
-  // FR/EN RSS (siteID). Sources RSS: meteo.gc.ca/rss/marine/<siteID>_<lang>.xml
-  // Montréal à Trois-Rivières: 10000, Donnacona à Beauport: 23100, Beauport à L'Isle-aux-Coudres: 23000
-  // Trois-Rivières à Donnacona: 14500 (souvent disponible aussi en RSS)
   MTL_TR: { siteID: "10000", labelFR: "Montréal à Trois-Rivières", labelEN: "Montréal to Trois-Rivières" },
   TR_DON: { siteID: "14500", labelFR: "Trois-Rivières à Donnacona", labelEN: "Trois-Rivières to Donnacona" },
   DON_BEA:{ siteID: "23100", labelFR: "Donnacona à Beauport", labelEN: "Donnacona to Beauport" },
   BEA_TAC:{ siteID: "23000", labelFR: "Beauport à L'Isle-aux-Coudres", labelEN: "Beauport to L'Isle-aux-Coudres" },
 };
 
-let marineLang = "fr";         // "fr" ou "en"
-let marineKey  = "BEA_TAC";    // onglet actif
+let marineLang = "fr";
+let marineKey  = "BEA_TAC";
 
 function setMarineStatus(t){ el("marineStatus").textContent = t; }
 
-// Format “heure locale” (même zone que ton reste: America/Toronto)
 function formatLocalIssued(dt){
-  // ex: 22/02 15:00
-  const d = new Intl.DateTimeFormat("fr-CA", {
+  return new Intl.DateTimeFormat("fr-CA", {
     timeZone: "America/Toronto",
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", hour12: false
   }).format(dt);
-  return d;
 }
 
 function marineFeedUrl(siteID, lang){
   const suffix = (lang === "en") ? "e" : "f";
-  return `https://meteo.gc.ca/rss/marine/${siteID}_${suffix}.xml`;
+  return "https://meteo.gc.ca/rss/marine/" + siteID + "_" + suffix + ".xml";
 }
 
 function stripHtmlToText(html){
-  // conserve les <br> en retours de ligne
   const tmp = document.createElement("div");
   tmp.innerHTML = String(html || "")
     .replace(/<br\s*\/?>/gi, "\n")
@@ -1567,34 +1517,28 @@ async function loadMarineForecast(){
 
   try{
     const r = await fetch(url, { cache: "no-store" });
-    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    if(!r.ok) throw new Error("HTTP " + r.status);
     const xmlText = await r.text();
 
     const xml = new DOMParser().parseFromString(xmlText, "text/xml");
     const item = xml.querySelector("channel > item");
     if(!item) throw new Error("Aucun item dans le flux RSS.");
 
-    const title = item.querySelector("title")?.textContent?.trim() || "";
-    const desc  = item.querySelector("description")?.textContent || "";
-    const pub   = item.querySelector("pubDate")?.textContent?.trim() || "";
+    const desc  = item.querySelector("description") ? item.querySelector("description").textContent : "";
+    const pub   = item.querySelector("pubDate") ? item.querySelector("pubDate").textContent.trim() : "";
 
-    // pubDate est le plus fiable pour l’heure
     const pubDate = pub ? new Date(pub) : null;
     const issuedLocal = (pubDate && !isNaN(pubDate.getTime())) ? formatLocalIssued(pubDate) : null;
 
-    // Heure affichée au-dessus du texte (comme ta capture)
     if(issuedLocal){
-      el("marineIssued").textContent = (marineLang === "en") ? `Issued: ${issuedLocal}` : `Émis: ${issuedLocal}`;
+      el("marineIssued").textContent = (marineLang === "en") ? ("Issued: " + issuedLocal) : ("Émis: " + issuedLocal);
     }else{
-      // fallback: tente d’extraire de title (moins fiable)
-      el("marineIssued").textContent = (marineLang === "en") ? `Issued: ${title}` : `Émis: ${title}`;
+      el("marineIssued").textContent = (marineLang === "en") ? "Issued: —" : "Émis: —";
     }
 
-    // Corps de prévision
     const text = stripHtmlToText(desc).trim();
     el("marineText").textContent = text || "—";
 
-    // petite horloge (optionnel)
     const now = new Date();
     el("marineClock").textContent = new Intl.DateTimeFormat("fr-CA", {
       timeZone: "America/Toronto",
@@ -1617,7 +1561,6 @@ function setMarineTabActive(){
 }
 
 function initMarineModule(){
-  // Tabs
   el("marineTabs").addEventListener("click", (e)=>{
     const btn = e.target.closest(".marineTab");
     if(!btn) return;
@@ -1628,7 +1571,6 @@ function initMarineModule(){
     loadMarineForecast();
   });
 
-  // Lang buttons
   el("marineLangFR").addEventListener("click", ()=>{
     marineLang = "fr";
     el("marineLangFR").classList.remove("secondary");
@@ -1642,18 +1584,51 @@ function initMarineModule(){
     loadMarineForecast();
   });
 
-  // Refresh
   el("marineRefresh").addEventListener("click", loadMarineForecast);
 
-  // état initial
   el("marineLangFR").classList.remove("secondary");
   el("marineLangEN").classList.add("secondary");
   setMarineTabActive();
   loadMarineForecast();
 }
 
-/* IMPORTANT: appeler initMarineModule() dans ton DOMContentLoaded existant */
+/* ================= INIT ================= */
+document.addEventListener("DOMContentLoaded", function(){
+  dbg("INIT DOMContentLoaded OK");
+
+  const n = new Date();
+  const yyyy = n.getFullYear();
+  const mm = String(n.getMonth()+1).padStart(2,"0");
+  const dd = String(n.getDate()).padStart(2,"0");
+  el("date").value = yyyy + "-" + mm + "-" + dd;
+
+  const tideSel = el("tideStation");
+  tideSel.innerHTML = STATION_OPTIONS.map(s => '<option value="'+s.name+'">'+s.name+'</option>').join("");
+  tideSel.value = "Neuville";
+
+  el("plotTide").addEventListener("click", plotTide24h);
+  el("runRestrictions").addEventListener("click", runRestrictions);
+
+  el("vessel").addEventListener("change", updateSquat);
+  el("largeur").addEventListener("input", updateSquat);
+  el("tirant").addEventListener("input", updateSquat);
+
+  el("clear").addEventListener("click", function(){
+    el("tideStatus").textContent="—";
+    if(tideChart){ tideChart.destroy(); tideChart=null; }
+    hidePinnedBox();
+    hideObsBadge();
+    hideObsSpeedBadge();
+    el("restrMeta").textContent="—";
+    el("restrBody").innerHTML = '<tr><td colspan="5" class="muted">Aucun calcul</td></tr>';
+    updateSquat();
+    setStatus("neutral","Prêt");
+  });
+
+  initMarineModule();
+  updateSquat();
+  setStatus("neutral","Prêt");
+});
 </script>
 </body>
 </html>
-
